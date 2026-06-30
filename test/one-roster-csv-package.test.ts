@@ -1,15 +1,12 @@
-import { zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 
+import { parseOneRosterCsvPackageEntries, parseOneRosterCsvZip } from "../src/index.js";
 import {
-  oneRosterCsvDataFileNames,
-  parseOneRosterCsvPackageEntries,
-  parseOneRosterCsvZip,
-  type OneRosterCsvDataFileName,
-  type OneRosterCsvPackage,
-  type OneRosterCsvPackageDiagnostic,
-  type Result,
-} from "../src/index.js";
+  expectPackageErr,
+  expectPackageOk,
+  manifestCsv,
+  zipPackage,
+} from "./fixtures/one-roster-csv-package-fixtures.js";
 
 const textEncoder = new TextEncoder();
 
@@ -224,83 +221,3 @@ describe("parseOneRosterCsvZip", () => {
     }
   });
 });
-
-function zipPackage(files: Readonly<Record<string, string>>): Uint8Array {
-  const entries: Record<string, Uint8Array> = {};
-
-  for (const [fileName, contents] of Object.entries(files)) {
-    entries[fileName] = textEncoder.encode(contents);
-  }
-
-  return zipSync(entries);
-}
-
-type ManifestCsvOptions = {
-  readonly header?: string;
-  readonly manifestVersion?: string;
-  readonly oneRosterVersion?: string;
-  readonly modes?: ReadonlyMap<string, string>;
-  readonly omitProperties?: ReadonlySet<string>;
-  readonly extraRows?: ReadonlyArray<string>;
-};
-
-function manifestCsv(options: ManifestCsvOptions = {}): string {
-  const rows: string[] = [options.header ?? "propertyName,value"];
-
-  addManifestRow(rows, options, "manifest.version", options.manifestVersion ?? "1.0");
-  addManifestRow(rows, options, "oneroster.version", options.oneRosterVersion ?? "1.2");
-
-  for (const fileName of oneRosterCsvDataFileNames) {
-    addManifestRow(
-      rows,
-      options,
-      manifestPropertyName(fileName),
-      options.modes?.get(fileName) ?? "absent",
-    );
-  }
-
-  if (options.extraRows !== undefined) {
-    rows.push(...options.extraRows);
-  }
-
-  return rows.join("\n");
-}
-
-function addManifestRow(
-  rows: string[],
-  options: ManifestCsvOptions,
-  propertyName: string,
-  value: string,
-): void {
-  if (options.omitProperties?.has(propertyName) === true) {
-    return;
-  }
-
-  rows.push(`${propertyName},${value}`);
-}
-
-function manifestPropertyName(fileName: OneRosterCsvDataFileName): string {
-  return `file.${fileName.slice(0, fileName.length - ".csv".length)}`;
-}
-
-function expectPackageOk(
-  result: Result<OneRosterCsvPackage, readonly OneRosterCsvPackageDiagnostic[]>,
-): OneRosterCsvPackage {
-  if (result._tag === "err") {
-    throw new Error(
-      `Expected package parse to succeed, got ${result.error[0]?.code ?? "unknown error"}.`,
-    );
-  }
-
-  return result.value;
-}
-
-function expectPackageErr(
-  result: Result<OneRosterCsvPackage, readonly OneRosterCsvPackageDiagnostic[]>,
-): readonly OneRosterCsvPackageDiagnostic[] {
-  if (result._tag === "ok") {
-    throw new Error("Expected package parse to fail.");
-  }
-
-  return result.error;
-}

@@ -29,6 +29,47 @@ export type {
   OneRosterManifestSource,
   OneRosterSuppliedFileMode,
 } from "./one-roster-csv-package.js";
+export {
+  parseOneRosterBooleanToken,
+  parseOneRosterDate,
+  parseOneRosterDateTime,
+  parseOneRosterGuid,
+  parseOneRosterYear,
+} from "./one-roster-csv-primitive.js";
+export type {
+  OneRosterDate,
+  OneRosterDateTime,
+  OneRosterGuid,
+  OneRosterYear,
+} from "./one-roster-csv-primitive.js";
+export {
+  parseOneRosterCsvRosteringPackage,
+  parseOneRosterCsvRosteringZip,
+} from "./one-roster-csv-rostering.js";
+export type {
+  OneRosterAcademicSessionRecord,
+  OneRosterAcademicSessionType,
+  OneRosterClassRecord,
+  OneRosterClassType,
+  OneRosterCourseRecord,
+  OneRosterCsvBulkLifecycle,
+  OneRosterCsvDeltaLifecycle,
+  OneRosterCsvDeltaStatus,
+  OneRosterCsvRecordMetadata,
+  OneRosterCsvRosteringFileName,
+  OneRosterCsvRosteringPackage,
+  OneRosterCsvRosteringRecordBase,
+  OneRosterCsvRowLifecycle,
+  OneRosterEnrollmentRecord,
+  OneRosterEnrollmentRole,
+  OneRosterExtensionVocabularyToken,
+  OneRosterOrgRecord,
+  OneRosterOrgType,
+  OneRosterRole,
+  OneRosterRoleRecord,
+  OneRosterRoleType,
+  OneRosterUserRecord,
+} from "./one-roster-csv-rostering.js";
 export { err, ok } from "./result.js";
 export type { Result } from "./result.js";
 export { defaultZipReadLimits, readZipEntries } from "./zip.js";
