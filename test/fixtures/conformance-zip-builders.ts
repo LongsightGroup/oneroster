@@ -42,6 +42,7 @@ import {
   userRow,
   usersCsv,
 } from "./one-roster-csv-rostering-rows.js";
+import { diagnosticSafetyPayload } from "./conformance-diagnostic-safety.js";
 import { conformanceDateLastModified } from "./conformance-lifecycle.js";
 import type { OneRosterCsvConformanceMode } from "./conformance-scenarios-valid.js";
 
@@ -112,41 +113,46 @@ export function metadataConformanceZip(): Uint8Array {
 }
 
 export function diagnosticSafetyZip(): Uint8Array {
+  const payload = diagnosticSafetyPayload;
+
   return zipPackage({
     "manifest.csv": manifestCsv({ modes: fullCsvModes("bulk") }),
     ...validBulkFullGraphFiles("bulk"),
     "users.csv": usersCsv([
-      userRow({ sourcedId: "safety-sourced-id", username: "safety-username" }),
-      userRow({ sourcedId: "safety-sourced-id", username: "safety-username-duplicate" }),
+      userRow({ sourcedId: payload.duplicateUserSourcedId, username: payload.username }),
+      userRow({
+        sourcedId: payload.duplicateUserSourcedId,
+        username: payload.duplicateUsername,
+      }),
     ]),
     "demographics.csv": demographicsCsv([
       demographicsRow({
-        sourcedId: "safety-demographic-user-id",
-        cityOfBirth: "safety-demographic-value",
+        sourcedId: payload.demographicUserSourcedId,
+        cityOfBirth: payload.demographicCity,
       }),
     ]),
     "userProfiles.csv": userProfilesCsv([
       userProfileRow({
-        sourcedId: "profile-1",
+        sourcedId: payload.profileSourcedId,
         userSourcedId: "user-1",
-        username: "safety-username",
-        password: "safety-password",
+        username: payload.username,
+        password: payload.password,
       }),
     ]),
     "lineItems.csv": lineItemsCsv([lineItemRow({ resultValueMin: "0", resultValueMax: "100" })]),
     "results.csv": resultsCsv([
       resultRow({
-        score: "999",
-        comment: "safety-comment",
-        textScore: "safety-text-score",
+        score: payload.resultScore,
+        comment: payload.resultComment,
+        textScore: payload.textScore,
       }),
     ]),
     "lineItemLearningObjectiveIds.csv": lineItemLearningObjectiveIdsCsv([
-      lineItemLearningObjectiveIdRow({ learningObjectiveId: "safety-learning-objective-id" }),
+      lineItemLearningObjectiveIdRow({ learningObjectiveId: payload.learningObjectiveId }),
     ]),
     "resources.csv": resourcesCsv([
       resourceRow({
-        vendorResourceId: "safety-vendor-resource-id",
+        vendorResourceId: payload.vendorResourceId,
         roles: "student",
       }),
     ]),

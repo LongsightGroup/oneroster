@@ -1,0 +1,51 @@
+export const diagnosticSafetyPayload = {
+  demographicCity: "safety-demographic-value",
+  demographicUserSourcedId: "safety-demographic-user-id",
+  duplicateUserSourcedId: "safety-sourced-id",
+  duplicateUsername: "safety-username-duplicate",
+  learningObjectiveId: "safety-learning-objective-id",
+  password: "safety-password",
+  profileSourcedId: "safety-profile-id",
+  resultComment: "safety-comment",
+  resultScore: "999",
+  textScore: "safety-text-score",
+  username: "safety-username",
+  vendorResourceId: "safety-vendor-resource-id",
+} as const;
+
+// `diagnosticSafetyZip` starts from the complete valid graph before replacing selected files.
+const inheritedDiagnosticSafetyTokens = [
+  "as-parent",
+  "as-1",
+  "org-root",
+  "org-1",
+  "course-1",
+  "class-1",
+  "user-agent",
+  "user-1",
+  "role-agent",
+  "role-1",
+  "enrollment-1",
+  "profile-1",
+  "profile-user-1",
+  "category-1",
+  "line-item-1",
+  "line-item-lo-1",
+  "line-item-score-scale-1",
+  "result-1",
+  "result-lo-1",
+  "result-score-scale-1",
+  "score-scale-1",
+  "resource-1",
+  "vendor-resource-1",
+  "class-resource-1",
+  "course-resource-1",
+  "user-resource-1",
+  "urn:uuid:11111111-1111-1111-1111-111111111111",
+  "objective-1",
+] as const;
+
+export const diagnosticSafetyTokens: readonly string[] = [
+  ...Object.values(diagnosticSafetyPayload),
+  ...inheritedDiagnosticSafetyTokens,
+];

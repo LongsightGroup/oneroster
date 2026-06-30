@@ -5,10 +5,8 @@ export type {
   OneRosterCsvConformanceProfile,
   OneRosterCsvConformanceValidScenario,
 } from "./conformance-scenarios-valid.js";
-export {
-  diagnosticSafetyTokens,
-  validConformanceScenarios,
-} from "./conformance-scenarios-valid.js";
+export { validConformanceScenarios } from "./conformance-scenarios-valid.js";
+export { diagnosticSafetyTokens } from "./conformance-diagnostic-safety.js";
 export { negativeConformanceScenarios } from "./conformance-scenarios-negative.js";
 export {
   diagnosticSafetyZip,

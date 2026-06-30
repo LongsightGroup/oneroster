@@ -1,12 +1,5 @@
-import {
-  isOneRosterCsvDataFileName,
-  type OneRosterCsvDataFileName,
-} from "../../src/one-roster-csv-file.js";
+import type { OneRosterCsvDataFileName } from "../../src/one-roster-csv-file.js";
 import type { OneRosterCsvPackageDiagnosticCode } from "../../src/one-roster-csv-package-diagnostic.js";
-import { validBulkFullGraphFiles } from "./one-roster-csv-full-packages.js";
-import { validBulkGradebookFiles } from "./one-roster-csv-gradebook-packages.js";
-import { validBulkResourcesFiles } from "./one-roster-csv-resources-packages.js";
-import { validBulkGraphFiles } from "./one-roster-csv-rostering-packages.js";
 import {
   fullConformanceZip,
   gradebookConformanceZip,
@@ -43,28 +36,51 @@ export type OneRosterCsvConformanceNegativeScenario = {
   readonly expectedCodes: readonly OneRosterCsvPackageDiagnosticCode[];
 };
 
-export const diagnosticSafetyTokens = [
-  "safety-sourced-id",
-  "safety-username",
-  "safety-password",
-  "safety-comment",
-  "999",
-  "safety-text-score",
-  "safety-learning-objective-id",
-  "safety-vendor-resource-id",
-  "safety-demographic-value",
-] as const;
+const rosteringSuppliedFiles = [
+  "academicSessions.csv",
+  "orgs.csv",
+  "courses.csv",
+  "classes.csv",
+  "users.csv",
+  "roles.csv",
+  "enrollments.csv",
+  "demographics.csv",
+  "userProfiles.csv",
+] as const satisfies readonly OneRosterCsvDataFileName[];
 
-const rosteringSuppliedFiles = suppliedFilesFromRecord(validBulkGraphFiles("bulk"));
-const gradebookSuppliedFiles = suppliedFilesFromRecord({
-  ...validBulkGraphFiles("bulk"),
-  ...validBulkGradebookFiles("bulk"),
-});
-const resourcesSuppliedFiles = suppliedFilesFromRecord({
-  ...validBulkGraphFiles("bulk"),
-  ...validBulkResourcesFiles("bulk"),
-});
-const fullSuppliedFiles = suppliedFilesFromRecord(validBulkFullGraphFiles("bulk"));
+const gradebookOnlySuppliedFiles = [
+  "categories.csv",
+  "lineItems.csv",
+  "results.csv",
+  "scoreScales.csv",
+  "lineItemLearningObjectiveIds.csv",
+  "lineItemScoreScales.csv",
+  "resultLearningObjectiveIds.csv",
+  "resultScoreScales.csv",
+] as const satisfies readonly OneRosterCsvDataFileName[];
+
+const resourcesOnlySuppliedFiles = [
+  "resources.csv",
+  "classResources.csv",
+  "courseResources.csv",
+  "userResources.csv",
+] as const satisfies readonly OneRosterCsvDataFileName[];
+
+const gradebookSuppliedFiles = [
+  ...rosteringSuppliedFiles,
+  ...gradebookOnlySuppliedFiles,
+] as const satisfies readonly OneRosterCsvDataFileName[];
+
+const resourcesSuppliedFiles = [
+  ...rosteringSuppliedFiles,
+  ...resourcesOnlySuppliedFiles,
+] as const satisfies readonly OneRosterCsvDataFileName[];
+
+const fullSuppliedFiles = [
+  ...rosteringSuppliedFiles,
+  ...gradebookOnlySuppliedFiles,
+  ...resourcesOnlySuppliedFiles,
+] as const satisfies readonly OneRosterCsvDataFileName[];
 
 export const validConformanceScenarios: readonly OneRosterCsvConformanceValidScenario[] = [
   {
@@ -130,11 +146,3 @@ export const validConformanceScenarios: readonly OneRosterCsvConformanceValidSce
     suppliedFiles: fullSuppliedFiles,
   },
 ];
-
-function suppliedFilesFromRecord(
-  files: Readonly<Record<string, string>>,
-): readonly OneRosterCsvDataFileName[] {
-  return Object.keys(files).filter((fileName): fileName is OneRosterCsvDataFileName =>
-    isOneRosterCsvDataFileName(fileName),
-  );
-}
