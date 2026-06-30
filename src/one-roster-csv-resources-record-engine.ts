@@ -40,7 +40,7 @@ export function parseResourceRecord(
       vendorId: parseOptionalStringField(context, "vendorId"),
       applicationId: parseOptionalStringField(context, "applicationId"),
     },
-    ["common", "vendorResourceId", "roles"],
+    ["common", "vendorResourceId"],
     (fields) => ({
       ...fields.common,
       vendorResourceId: fields.vendorResourceId,

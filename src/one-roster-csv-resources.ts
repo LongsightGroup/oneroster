@@ -26,12 +26,16 @@ export function parseOneRosterCsvResourcesZip(
   bytes: Uint8Array,
   options: OneRosterCsvPackageOptions = {},
 ): Result<OneRosterCsvResourcesPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  return parseOneRosterCsvLayeredZip(bytes, options, parseResourcesPackageRecords);
+  return parseOneRosterCsvLayeredZip(bytes, options, (pkg, _rosteringPackage, diagnostics) =>
+    parseResourcesPackageRecords(pkg, diagnostics),
+  );
 }
 
 /** Parse an already-normalized OneRoster CSV package into typed resources records. */
 export function parseOneRosterCsvResourcesPackage(
   packageValue: OneRosterCsvPackage,
 ): Result<OneRosterCsvResourcesPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  return parseOneRosterCsvLayeredPackage(packageValue, parseResourcesPackageRecords);
+  return parseOneRosterCsvLayeredPackage(packageValue, (pkg, _rosteringPackage, diagnostics) =>
+    parseResourcesPackageRecords(pkg, diagnostics),
+  );
 }

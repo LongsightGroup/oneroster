@@ -7,6 +7,7 @@ import { parseOneRosterCsvFullZip, type OneRosterCsvFullPackage } from "./one-ro
 import { validateOneRosterCsvFullSemanticRules } from "./one-roster-csv-full-semantics.js";
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
+import { validatedRosteringPackage } from "./one-roster-csv-profile-validator.js";
 import type { OneRosterCsvReferenceValidationOptions } from "./one-roster-csv-record-reference-validation.js";
 import {
   collectOneRosterCsvResourcesValidation,
@@ -56,7 +57,7 @@ export function validateOneRosterCsvFullPackage(
   }
 
   const rosteringValidation = validatedRosteringPackage(
-    packageValue,
+    packageValue.rosteringPackage,
     validation.rosteringValidation,
   );
 
@@ -97,7 +98,6 @@ function collectOneRosterCsvFullValidation(
     {
       referenceOptions: options,
       rosteringValidation,
-      suppressRosteringDiagnostics: true,
     },
   );
   const resourcesValidation = collectOneRosterCsvResourcesValidation(
@@ -105,7 +105,6 @@ function collectOneRosterCsvFullValidation(
     {
       referenceOptions: options,
       rosteringValidation,
-      suppressRosteringDiagnostics: true,
     },
   );
 
@@ -126,15 +125,5 @@ function collectOneRosterCsvFullValidation(
     gradebookValidation,
     resourcesValidation,
     diagnostics,
-  };
-}
-
-function validatedRosteringPackage(
-  packageValue: OneRosterCsvFullPackage,
-  validation: OneRosterCsvRosteringValidationState,
-): OneRosterCsvValidatedRosteringPackage {
-  return {
-    rosteringPackage: packageValue.rosteringPackage,
-    indexes: validation.indexes,
   };
 }

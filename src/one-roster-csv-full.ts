@@ -1,18 +1,12 @@
 import {
-  parseGradebookPackageRecords,
-  type GradebookPackageRecords,
-} from "./one-roster-csv-gradebook-tables.js";
-import type { OneRosterCsvGradebookPackage } from "./one-roster-csv-gradebook-types.js";
-import {
   parseOneRosterCsvLayeredPackage,
   parseOneRosterCsvLayeredZip,
 } from "./one-roster-csv-layered-package.js";
+import { parseGradebookPackageRecords } from "./one-roster-csv-gradebook-tables.js";
+import type { OneRosterCsvGradebookPackage } from "./one-roster-csv-gradebook-types.js";
 import type { OneRosterCsvPackage, OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
-import {
-  parseResourcesPackageRecords,
-  type ResourcesPackageRecords,
-} from "./one-roster-csv-resources-tables.js";
+import { parseResourcesPackageRecords } from "./one-roster-csv-resources-tables.js";
 import type { OneRosterCsvResourcesPackage } from "./one-roster-csv-resources-types.js";
 import type { OneRosterCsvRosteringPackage } from "./one-roster-csv-rostering-types.js";
 import { ok, type Result } from "./result.js";
@@ -62,28 +56,37 @@ export type OneRosterCsvFullPackage = {
   readonly resourcesPackage: OneRosterCsvResourcesPackage;
 };
 
-type FullProfileRecords = {
-  readonly gradebook: GradebookPackageRecords;
-  readonly resources: ResourcesPackageRecords;
-};
+function parseFullProfileRecords(
+  packageValue: OneRosterCsvPackage,
+  rosteringPackage: OneRosterCsvRosteringPackage | undefined,
+  diagnostics: OneRosterCsvPackageDiagnostic[],
+): {
+  readonly gradebookPackage: OneRosterCsvGradebookPackage;
+  readonly resourcesPackage: OneRosterCsvResourcesPackage;
+} {
+  const gradebookRecords = parseGradebookPackageRecords(packageValue, diagnostics);
+  const resourcesRecords = parseResourcesPackageRecords(packageValue, diagnostics);
+  // SAFETY: failed parses return diagnostics before this composite package is used.
+  const rostering = rosteringPackage!;
 
-type LayeredFullPackage = {
-  readonly rosteringPackage: OneRosterCsvRosteringPackage;
-  readonly profile: FullProfileRecords;
-};
+  return {
+    gradebookPackage: {
+      rosteringPackage: rostering,
+      ...gradebookRecords,
+    },
+    resourcesPackage: {
+      rosteringPackage: rostering,
+      ...resourcesRecords,
+    },
+  };
+}
 
 /** Parse a OneRoster CSV ZIP archive into all supported typed CSV record layers. */
 export function parseOneRosterCsvFullZip(
   bytes: Uint8Array,
   options: OneRosterCsvPackageOptions = {},
 ): Result<OneRosterCsvFullPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const result = parseOneRosterCsvLayeredZip(bytes, options, parseFullProfileRecords);
-
-  if (result._tag === "err") {
-    return result;
-  }
-
-  return ok(toFullPackage(result.value));
+  return parseOneRosterCsvLayeredZip(bytes, options, parseFullProfileRecords);
 }
 
 /** Parse an already-normalized OneRoster CSV package into all supported typed CSV record layers. */
@@ -96,31 +99,5 @@ export function parseOneRosterCsvFullPackage(
     return result;
   }
 
-  return ok(toFullPackage(result.value));
-}
-
-function parseFullProfileRecords(
-  packageValue: OneRosterCsvPackage,
-  diagnostics: OneRosterCsvPackageDiagnostic[],
-): { readonly profile: FullProfileRecords } {
-  return {
-    profile: {
-      gradebook: parseGradebookPackageRecords(packageValue, diagnostics),
-      resources: parseResourcesPackageRecords(packageValue, diagnostics),
-    },
-  };
-}
-
-function toFullPackage(packageValue: LayeredFullPackage): OneRosterCsvFullPackage {
-  return {
-    rosteringPackage: packageValue.rosteringPackage,
-    gradebookPackage: {
-      rosteringPackage: packageValue.rosteringPackage,
-      ...packageValue.profile.gradebook,
-    },
-    resourcesPackage: {
-      rosteringPackage: packageValue.rosteringPackage,
-      ...packageValue.profile.resources,
-    },
-  };
+  return ok(result.value);
 }

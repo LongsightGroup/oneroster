@@ -14,14 +14,13 @@ import type {
 } from "./one-roster-csv-resources-types.js";
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
+import type { OneRosterCsvProfileReferenceValidationContextBase } from "./one-roster-csv-profile-reference-context.js";
 import {
-  buildProfileReferenceValidationContextBase,
-  type OneRosterCsvProfileReferenceValidationContextBase,
-} from "./one-roster-csv-profile-reference-context.js";
-import {
-  collectProfileReferenceValidation,
-  type OneRosterCsvProfileValidationCollectionOptions,
-} from "./one-roster-csv-profile-validation.js";
+  createProfilePackageValidator,
+  createProfileReferenceValidator,
+  validatedRosteringPackage,
+} from "./one-roster-csv-profile-validator.js";
+import type { OneRosterCsvProfileValidationCollectionOptions } from "./one-roster-csv-profile-validation.js";
 import {
   defineOneRosterCsvReferenceRule,
   oneRosterCsvRecordSetTarget,
@@ -35,7 +34,7 @@ import type {
   OneRosterCsvRosteringValidationState,
   OneRosterCsvValidatedRosteringPackage,
 } from "./one-roster-csv-rostering-validation.js";
-import { err, ok, type Result } from "./result.js";
+import type { Result } from "./result.js";
 
 export type { OneRosterCsvResourcesReferenceIndexes } from "./one-roster-csv-resources-types.js";
 export type { OneRosterCsvProfileValidationCollectionOptions as OneRosterCsvResourcesValidationCollectionOptions } from "./one-roster-csv-profile-validation.js";
@@ -121,18 +120,35 @@ const RESOURCES_REFERENCE_RULES: readonly ResourcesReferenceRule[] = [
   }),
 ];
 
+const resourcesValidator = createProfilePackageValidator<
+  OneRosterCsvResourcesPackage,
+  OneRosterCsvResourcesReferenceIndexes,
+  OneRosterCsvValidatedResourcesPackage
+>({
+  parseZip: parseOneRosterCsvResourcesZip,
+  collectValidation: createProfileReferenceValidator<
+    OneRosterCsvResourcesPackage,
+    OneRosterCsvResourcesReferenceIndexes
+  >({
+    buildIndexes: buildResourcesReferenceIndexes,
+    rules: RESOURCES_REFERENCE_RULES,
+  }),
+  toValidatedPackage: (packageValue, validation) => ({
+    resourcesPackage: packageValue,
+    rosteringValidation: validatedRosteringPackage(
+      packageValue.rosteringPackage,
+      validation.rosteringValidation,
+    ),
+    indexes: validation.indexes,
+  }),
+});
+
 /** Parse a OneRoster CSV ZIP archive and validate resources plus rostering references. */
 export function parseAndValidateOneRosterCsvResourcesZip(
   bytes: Uint8Array,
   options: OneRosterCsvPackageOptions & OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedResourcesPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const parsedPackage = parseOneRosterCsvResourcesZip(bytes, options);
-
-  if (parsedPackage._tag === "err") {
-    return err(parsedPackage.error);
-  }
-
-  return validateOneRosterCsvResourcesPackage(parsedPackage.value, options);
+  return resourcesValidator.parseAndValidateZip(bytes, options);
 }
 
 /** Validate duplicate sourcedIds and direct references in a typed resources package. */
@@ -140,22 +156,7 @@ export function validateOneRosterCsvResourcesPackage(
   packageValue: OneRosterCsvResourcesPackage,
   options: OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedResourcesPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const validation = collectOneRosterCsvResourcesValidation(packageValue, {
-    referenceOptions: options,
-  });
-
-  if (validation.diagnostics.length > 0) {
-    return err(validation.diagnostics);
-  }
-
-  return ok({
-    resourcesPackage: packageValue,
-    rosteringValidation: {
-      rosteringPackage: packageValue.rosteringPackage,
-      indexes: validation.rosteringValidation.indexes,
-    },
-    indexes: validation.indexes,
-  });
+  return resourcesValidator.validatePackage(packageValue, options);
 }
 
 /** Collect duplicate and reference validation diagnostics for typed resources records. */
@@ -163,32 +164,5 @@ export function collectOneRosterCsvResourcesValidation(
   packageValue: OneRosterCsvResourcesPackage,
   options: OneRosterCsvProfileValidationCollectionOptions = {},
 ): OneRosterCsvResourcesValidationState {
-  return collectProfileReferenceValidation({
-    rosteringPackage: packageValue.rosteringPackage,
-    packageValue,
-    ...(options.referenceOptions !== undefined ? { options: options.referenceOptions } : {}),
-    ...(options.rosteringValidation !== undefined
-      ? { rosteringValidation: options.rosteringValidation }
-      : {}),
-    ...(options.suppressRosteringDiagnostics !== undefined
-      ? { suppressRosteringDiagnostics: options.suppressRosteringDiagnostics }
-      : {}),
-    buildIndexes: buildResourcesReferenceIndexes,
-    buildContext: ({
-      packageValue: currentPackage,
-      rosteringValidation: currentRosteringValidation,
-      indexes,
-      diagnostics,
-      referenceMode,
-    }) =>
-      buildProfileReferenceValidationContextBase(
-        currentPackage,
-        currentPackage.rosteringPackage,
-        currentRosteringValidation.indexes,
-        indexes,
-        diagnostics,
-        referenceMode,
-      ),
-    rules: RESOURCES_REFERENCE_RULES,
-  });
+  return resourcesValidator.collectValidation(packageValue, options);
 }

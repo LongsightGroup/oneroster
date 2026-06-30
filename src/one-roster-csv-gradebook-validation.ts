@@ -18,14 +18,13 @@ import {
 } from "./one-roster-csv-gradebook-tables.js";
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
+import type { OneRosterCsvProfileReferenceValidationContextBase } from "./one-roster-csv-profile-reference-context.js";
 import {
-  buildProfileReferenceValidationContextBase,
-  type OneRosterCsvProfileReferenceValidationContextBase,
-} from "./one-roster-csv-profile-reference-context.js";
-import {
-  collectProfileReferenceValidation,
-  type OneRosterCsvProfileValidationCollectionOptions,
-} from "./one-roster-csv-profile-validation.js";
+  createProfilePackageValidator,
+  createProfileReferenceValidator,
+  validatedRosteringPackage,
+} from "./one-roster-csv-profile-validator.js";
+import type { OneRosterCsvProfileValidationCollectionOptions } from "./one-roster-csv-profile-validation.js";
 import {
   defineOneRosterCsvReferenceRule,
   oneRosterCsvRecordSetTarget,
@@ -39,7 +38,7 @@ import type {
   OneRosterCsvRosteringValidationState,
   OneRosterCsvValidatedRosteringPackage,
 } from "./one-roster-csv-rostering-validation.js";
-import { err, ok, type Result } from "./result.js";
+import type { Result } from "./result.js";
 
 export type { OneRosterCsvGradebookReferenceIndexes } from "./one-roster-csv-gradebook-types.js";
 export type { OneRosterCsvProfileValidationCollectionOptions as OneRosterCsvGradebookValidationCollectionOptions } from "./one-roster-csv-profile-validation.js";
@@ -173,18 +172,35 @@ const GRADEBOOK_REFERENCE_RULES: readonly GradebookReferenceRule[] = [
   }),
 ];
 
+const gradebookValidator = createProfilePackageValidator<
+  OneRosterCsvGradebookPackage,
+  OneRosterCsvGradebookReferenceIndexes,
+  OneRosterCsvValidatedGradebookPackage
+>({
+  parseZip: parseOneRosterCsvGradebookZip,
+  collectValidation: createProfileReferenceValidator<
+    OneRosterCsvGradebookPackage,
+    OneRosterCsvGradebookReferenceIndexes
+  >({
+    buildIndexes: buildGradebookReferenceIndexes,
+    rules: GRADEBOOK_REFERENCE_RULES,
+  }),
+  toValidatedPackage: (packageValue, validation) => ({
+    gradebookPackage: packageValue,
+    rosteringValidation: validatedRosteringPackage(
+      packageValue.rosteringPackage,
+      validation.rosteringValidation,
+    ),
+    indexes: validation.indexes,
+  }),
+});
+
 /** Parse a OneRoster CSV ZIP archive and validate gradebook plus rostering references. */
 export function parseAndValidateOneRosterCsvGradebookZip(
   bytes: Uint8Array,
   options: OneRosterCsvPackageOptions & OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedGradebookPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const parsedPackage = parseOneRosterCsvGradebookZip(bytes, options);
-
-  if (parsedPackage._tag === "err") {
-    return err(parsedPackage.error);
-  }
-
-  return validateOneRosterCsvGradebookPackage(parsedPackage.value, options);
+  return gradebookValidator.parseAndValidateZip(bytes, options);
 }
 
 /** Validate duplicate sourcedIds and direct references in a typed gradebook package. */
@@ -192,22 +208,7 @@ export function validateOneRosterCsvGradebookPackage(
   packageValue: OneRosterCsvGradebookPackage,
   options: OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedGradebookPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const validation = collectOneRosterCsvGradebookValidation(packageValue, {
-    referenceOptions: options,
-  });
-
-  if (validation.diagnostics.length > 0) {
-    return err(validation.diagnostics);
-  }
-
-  return ok({
-    gradebookPackage: packageValue,
-    rosteringValidation: {
-      rosteringPackage: packageValue.rosteringPackage,
-      indexes: validation.rosteringValidation.indexes,
-    },
-    indexes: validation.indexes,
-  });
+  return gradebookValidator.validatePackage(packageValue, options);
 }
 
 /** Collect duplicate and reference validation diagnostics for typed gradebook records. */
@@ -215,32 +216,5 @@ export function collectOneRosterCsvGradebookValidation(
   packageValue: OneRosterCsvGradebookPackage,
   options: OneRosterCsvProfileValidationCollectionOptions = {},
 ): OneRosterCsvGradebookValidationState {
-  return collectProfileReferenceValidation({
-    rosteringPackage: packageValue.rosteringPackage,
-    packageValue,
-    ...(options.referenceOptions !== undefined ? { options: options.referenceOptions } : {}),
-    ...(options.rosteringValidation !== undefined
-      ? { rosteringValidation: options.rosteringValidation }
-      : {}),
-    ...(options.suppressRosteringDiagnostics !== undefined
-      ? { suppressRosteringDiagnostics: options.suppressRosteringDiagnostics }
-      : {}),
-    buildIndexes: buildGradebookReferenceIndexes,
-    buildContext: ({
-      packageValue: currentPackage,
-      rosteringValidation: currentRosteringValidation,
-      indexes,
-      diagnostics,
-      referenceMode,
-    }) =>
-      buildProfileReferenceValidationContextBase(
-        currentPackage,
-        currentPackage.rosteringPackage,
-        currentRosteringValidation.indexes,
-        indexes,
-        diagnostics,
-        referenceMode,
-      ),
-    rules: GRADEBOOK_REFERENCE_RULES,
-  });
+  return gradebookValidator.collectValidation(packageValue, options);
 }

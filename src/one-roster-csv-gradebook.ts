@@ -30,12 +30,16 @@ export function parseOneRosterCsvGradebookZip(
   bytes: Uint8Array,
   options: OneRosterCsvPackageOptions = {},
 ): Result<OneRosterCsvGradebookPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  return parseOneRosterCsvLayeredZip(bytes, options, parseGradebookPackageRecords);
+  return parseOneRosterCsvLayeredZip(bytes, options, (pkg, _rosteringPackage, diagnostics) =>
+    parseGradebookPackageRecords(pkg, diagnostics),
+  );
 }
 
 /** Parse an already-normalized OneRoster CSV package into typed gradebook records. */
 export function parseOneRosterCsvGradebookPackage(
   packageValue: OneRosterCsvPackage,
 ): Result<OneRosterCsvGradebookPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  return parseOneRosterCsvLayeredPackage(packageValue, parseGradebookPackageRecords);
+  return parseOneRosterCsvLayeredPackage(packageValue, (pkg, _rosteringPackage, diagnostics) =>
+    parseGradebookPackageRecords(pkg, diagnostics),
+  );
 }

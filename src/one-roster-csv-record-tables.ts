@@ -27,6 +27,88 @@ export type OneRosterCsvRecordTableDefinition<
   readonly parse: (context: OneRosterCsvRecordRowContext) => TRecord | undefined;
 };
 
+type ParsedPackageRecords<
+  TPackage,
+  TIndexes,
+  TTables extends Record<
+    string,
+    OneRosterCsvRecordTableDefinition<TPackage, TIndexes, OneRosterCsvRecordBase>
+  >,
+> = {
+  readonly [K in keyof TTables]: TTables[K] extends OneRosterCsvRecordTableDefinition<
+    TPackage,
+    TIndexes,
+    infer TRecord
+  >
+    ? ReadonlyArray<TRecord>
+    : never;
+};
+
+/** Registry of typed profile tables with shared parse and index builders. */
+export type OneRosterCsvProfileTableRegistry<
+  TPackage,
+  TIndexes,
+  TTables extends Record<
+    string,
+    OneRosterCsvRecordTableDefinition<TPackage, TIndexes, OneRosterCsvRecordBase>
+  >,
+> = {
+  readonly tables: TTables;
+  parsePackageRecords(
+    packageValue: OneRosterCsvPackage,
+    diagnostics: OneRosterCsvPackageDiagnostic[],
+  ): ParsedPackageRecords<TPackage, TIndexes, TTables>;
+  buildReferenceIndexes(
+    packageValue: TPackage,
+    diagnostics: OneRosterCsvPackageDiagnostic[],
+  ): TIndexes;
+};
+
+/** Register profile tables keyed by package record property and `${key}BySourcedId` index keys. */
+export function defineProfileTables<
+  TPackage,
+  TIndexes,
+  const TTables extends Record<
+    string,
+    OneRosterCsvRecordTableDefinition<TPackage, TIndexes, OneRosterCsvRecordBase>
+  >,
+>(tables: TTables): OneRosterCsvProfileTableRegistry<TPackage, TIndexes, TTables> {
+  return {
+    tables,
+    parsePackageRecords(packageValue, diagnostics) {
+      const entries = (Object.keys(tables) as (keyof TTables & string)[]).map((key) => {
+        // SAFETY: `key` is always a registered table entry from the same `tables` object.
+        const tableDefinition = tables[key]!;
+        return [
+          key,
+          parseOneRosterCsvRecordTable(packageValue, tableDefinition, diagnostics),
+        ] as const;
+      });
+
+      // SAFETY: entries are built from the same `tables` registry that defines the return shape.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+      return Object.fromEntries(entries) as ParsedPackageRecords<TPackage, TIndexes, TTables>;
+    },
+    buildReferenceIndexes(packageValue, diagnostics) {
+      const entries = (Object.keys(tables) as (keyof TTables & string)[]).map((key) => {
+        // SAFETY: `key` is always a registered table entry from the same `tables` object.
+        const tableDefinition = tables[key]!;
+        // SAFETY: `${key}BySourcedId` is the canonical index property for each registered table key.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+        const indexKey = `${key}BySourcedId` as keyof TIndexes;
+        return [
+          indexKey,
+          buildOneRosterCsvRecordSetIndex(tableDefinition, packageValue, diagnostics),
+        ] as const;
+      });
+
+      // SAFETY: entries follow the `${recordKey}BySourcedId` convention enforced by callers.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+      return Object.fromEntries(entries) as TIndexes;
+    },
+  };
+}
+
 /** Parse a typed record table from a normalized OneRoster CSV package. */
 export function parseOneRosterCsvRecordTable<
   TPackage,
