@@ -4,9 +4,6 @@ import {
   parseOneRosterCsvRosteringPackage,
   parseOneRosterCsvRosteringZip,
   parseOneRosterCsvZip,
-  type OneRosterCsvPackageDiagnostic,
-  type OneRosterCsvRosteringPackage,
-  type Result,
 } from "../src/index.js";
 import {
   csvDocument,
@@ -14,109 +11,21 @@ import {
   manifestCsv,
   zipPackage,
 } from "./fixtures/one-roster-csv-package-fixtures.js";
-
-const academicSessionHeader = [
-  "sourcedId",
-  "status",
-  "dateLastModified",
-  "title",
-  "type",
-  "startDate",
-  "endDate",
-  "parentSourcedId",
-  "schoolYear",
-] as const;
-
-const orgHeader = [
-  "sourcedId",
-  "status",
-  "dateLastModified",
-  "name",
-  "type",
-  "identifier",
-  "parentSourcedId",
-] as const;
-
-const courseHeader = [
-  "sourcedId",
-  "status",
-  "dateLastModified",
-  "schoolYearSourcedId",
-  "title",
-  "courseCode",
-  "grades",
-  "orgSourcedId",
-  "subjects",
-  "subjectCodes",
-] as const;
-
-const classHeader = [
-  "sourcedId",
-  "status",
-  "dateLastModified",
-  "title",
-  "grades",
-  "courseSourcedId",
-  "classCode",
-  "classType",
-  "location",
-  "schoolSourcedId",
-  "termSourcedIds",
-  "subjects",
-  "subjectCodes",
-  "periods",
-] as const;
-
-const userHeader = [
-  "sourcedId",
-  "status",
-  "dateLastModified",
-  "enabledUser",
-  "username",
-  "userIds",
-  "givenName",
-  "familyName",
-  "middleName",
-  "identifier",
-  "email",
-  "sms",
-  "phone",
-  "agentSourcedIds",
-  "grades",
-  "password",
-  "userMasterIdentifier",
-  "preferredGivenName",
-  "preferredMiddleName",
-  "preferredFamilyName",
-  "primaryOrgSourcedId",
-  "pronouns",
-] as const;
-
-const roleHeader = [
-  "sourcedId",
-  "status",
-  "dateLastModified",
-  "userSourcedId",
-  "roleType",
-  "role",
-  "beginDate",
-  "endDate",
-  "orgSourcedId",
-  "userProfileSourcedId",
-] as const;
-
-const enrollmentHeader = [
-  "sourcedId",
-  "status",
-  "dateLastModified",
-  "classSourcedId",
-  "schoolSourcedId",
-  "userSourcedId",
-  "role",
-  "primary",
-  "beginDate",
-  "endDate",
-] as const;
+import {
+  classHeader,
+  roleHeader,
+  userHeader,
+} from "./fixtures/one-roster-csv-rostering-headers.js";
+import {
+  expectRosteringErr,
+  expectRosteringOk,
+} from "./fixtures/one-roster-csv-rostering-assertions.js";
+import {
+  rosteringModes,
+  usersOnlyPackage,
+  validBulkRosteringFiles,
+} from "./fixtures/one-roster-csv-rostering-packages.js";
+import { usersCsv, validBulkUserRow } from "./fixtures/one-roster-csv-rostering-rows.js";
 
 describe("parseOneRosterCsvRosteringZip", () => {
   it("parses valid bulk records for the seven core rostering files", () => {
@@ -392,9 +301,20 @@ describe("parseOneRosterCsvRosteringZip", () => {
             ["users.csv", "bulk"],
           ]),
         }),
-        "academicSessions.csv": csvDocument(academicSessionHeader, [
-          ["bad|id", "", "", "", "quarter", "2025-02-30", "2025-06-01", "", "20A5"],
-        ]),
+        "academicSessions.csv": csvDocument(
+          [
+            "sourcedId",
+            "status",
+            "dateLastModified",
+            "title",
+            "type",
+            "startDate",
+            "endDate",
+            "parentSourcedId",
+            "schoolYear",
+          ],
+          [["bad|id", "", "", "", "quarter", "2025-02-30", "2025-06-01", "", "20A5"]],
+        ),
         "roles.csv": csvDocument(roleHeader, [
           ["role-2", "", "", "user-1", "ext:primary", "teacher", "", "", "org-1", ""],
         ]),
@@ -548,112 +468,3 @@ describe("parseOneRosterCsvRosteringZip", () => {
     expect(diagnosticsJson).not.toContain("credential-user");
   });
 });
-
-function validBulkRosteringFiles(): Readonly<Record<string, string>> {
-  return {
-    "academicSessions.csv": csvDocument(academicSessionHeader, [
-      ["as-1", "", "", "School Year", "schoolYear", "2024-08-01", "2025-06-01", "", "2025"],
-    ]),
-    "orgs.csv": csvDocument(orgHeader, [["org-1", "", "", "North School", "school", "NCES-1", ""]]),
-    "courses.csv": csvDocument(courseHeader, [
-      ["course-1", "", "", "as-1", "Algebra One", "ALG1", "9", "org-1", "Math", "MATH"],
-    ]),
-    "classes.csv": csvDocument(classHeader, [
-      [
-        "class-1",
-        "",
-        "",
-        "Algebra One A",
-        "9",
-        "course-1",
-        "A1",
-        "scheduled",
-        "Room 101",
-        "org-1",
-        "as-1",
-        "Math",
-        "MATH",
-        "1",
-      ],
-    ]),
-    "users.csv": usersCsv([validBulkUserRow()]),
-    "roles.csv": csvDocument(roleHeader, [
-      ["role-1", "", "", "user-1", "primary", "teacher", "2024-08-01", "", "org-1", ""],
-    ]),
-    "enrollments.csv": csvDocument(enrollmentHeader, [
-      ["enrollment-1", "", "", "class-1", "org-1", "user-1", "teacher", "true", "2024-08-01", ""],
-    ]),
-  };
-}
-
-function validBulkUserRow(): readonly string[] {
-  return [
-    "user-1",
-    "",
-    "",
-    "true",
-    "user-1",
-    "",
-    "Given",
-    "Family",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "9",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "org-1",
-    "",
-  ];
-}
-
-function usersCsv(rows: ReadonlyArray<readonly string[]>): string {
-  return csvDocument(userHeader, rows);
-}
-
-function usersOnlyPackage(users: string): Uint8Array {
-  return zipPackage({
-    "manifest.csv": manifestCsv({ modes: new Map([["users.csv", "bulk"]]) }),
-    "users.csv": users,
-  });
-}
-
-function rosteringModes(mode: "bulk" | "delta"): ReadonlyMap<string, string> {
-  return new Map([
-    ["academicSessions.csv", mode],
-    ["orgs.csv", mode],
-    ["courses.csv", mode],
-    ["classes.csv", mode],
-    ["users.csv", mode],
-    ["roles.csv", mode],
-    ["enrollments.csv", mode],
-  ]);
-}
-
-function expectRosteringOk(
-  result: Result<OneRosterCsvRosteringPackage, readonly OneRosterCsvPackageDiagnostic[]>,
-): OneRosterCsvRosteringPackage {
-  if (result._tag === "err") {
-    throw new Error(
-      `Expected rostering parse to succeed, got ${result.error[0]?.code ?? "unknown error"}.`,
-    );
-  }
-
-  return result.value;
-}
-
-function expectRosteringErr(
-  result: Result<OneRosterCsvRosteringPackage, readonly OneRosterCsvPackageDiagnostic[]>,
-): readonly OneRosterCsvPackageDiagnostic[] {
-  if (result._tag === "ok") {
-    throw new Error("Expected rostering parse to fail.");
-  }
-
-  return result.error;
-}

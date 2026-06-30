@@ -42,6 +42,7 @@ export type OneRosterCsvRecordMetadata = Readonly<Record<string, string>>;
 
 /** Common fields shared by typed OneRoster CSV rostering records. */
 export type OneRosterCsvRosteringRecordBase = {
+  readonly rowNumber: number;
   readonly sourcedId: OneRosterGuid;
   readonly lifecycle: OneRosterCsvRowLifecycle;
   readonly metadata: OneRosterCsvRecordMetadata;

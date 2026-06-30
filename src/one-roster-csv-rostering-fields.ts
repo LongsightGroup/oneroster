@@ -42,6 +42,7 @@ export function parseCommonRecordFields(
   }
 
   return {
+    rowNumber: context.row.rowNumber,
     sourcedId,
     lifecycle,
     metadata: extractMetadata(context),

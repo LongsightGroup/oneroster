@@ -46,6 +46,10 @@ export {
   parseOneRosterCsvRosteringPackage,
   parseOneRosterCsvRosteringZip,
 } from "./one-roster-csv-rostering.js";
+export {
+  parseAndValidateOneRosterCsvRosteringZip,
+  validateOneRosterCsvRosteringPackage,
+} from "./one-roster-csv-rostering-validation.js";
 export type {
   OneRosterAcademicSessionRecord,
   OneRosterAcademicSessionType,
@@ -70,6 +74,12 @@ export type {
   OneRosterRoleType,
   OneRosterUserRecord,
 } from "./one-roster-csv-rostering.js";
+export type {
+  OneRosterCsvReferenceValidationMode,
+  OneRosterCsvRosteringReferenceIndexes,
+  OneRosterCsvRosteringValidationOptions,
+  OneRosterCsvValidatedRosteringPackage,
+} from "./one-roster-csv-rostering-validation.js";
 export { err, ok } from "./result.js";
 export type { Result } from "./result.js";
 export { defaultZipReadLimits, readZipEntries } from "./zip.js";

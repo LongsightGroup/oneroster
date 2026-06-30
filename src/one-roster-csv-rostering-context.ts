@@ -16,6 +16,7 @@ export type RosteringRowContext = {
 
 /** Common fields shared by every typed rostering record. */
 export type CommonRecordFields = {
+  readonly rowNumber: number;
   readonly sourcedId: OneRosterGuid;
   readonly lifecycle: OneRosterCsvRowLifecycle;
   readonly metadata: OneRosterCsvRecordMetadata;
