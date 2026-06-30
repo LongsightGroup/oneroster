@@ -7,15 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-30
+
 ### Added
 
 - Consolidated OneRoster CSV conformance corpus with acceptance, round-trip, and negative scenarios across package, rostering, gradebook, resources, and full profiles
 - Public API smoke tests and documented usage examples exercised in CI
 - Shared test assertion helpers, conformance profile handlers, and split conformance fixture modules
+- `parseAndValidateOneRosterCsvFullEntries` for callers that already have package entries in memory
+- Canonical CSV binding helpers for table headers and manifest row generation
+- Typed record projection helpers for canonical CSV cells and header-keyed objects
+- Public status, diagnostic location, resolved enrollment, and gradebook relationship helpers
 
 ### Changed
 
 - Hardened conformance fixture assertions and replaced brittle CSV lifecycle surgery with explicit delta row builders
+- Added resolved relationship indexes to validated full-package results
+- Split entries options from ZIP options so in-memory entry APIs do not expose irrelevant ZIP limits
+- Centralized metadata header validation across parsing, writing, and record projection
 
 ## [0.1.0] - 2026-06-30
 

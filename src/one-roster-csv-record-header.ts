@@ -1,8 +1,10 @@
 import { packageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
+import {
+  isOneRosterMetadataHeader,
+  oneRosterMetadataHeaderPrefix,
+} from "./one-roster-csv-metadata.js";
 import type { OneRosterCsvTable } from "./one-roster-csv-table.js";
-
-const metadataHeaderPrefix = "metadata.";
 
 /** Validate typed OneRoster CSV headers against spec order and metadata placement rules. */
 export function validateOneRosterCsvRecordHeader(
@@ -41,10 +43,10 @@ export function validateOneRosterCsvRecordHeader(
 
     diagnostics.push(
       packageDiagnostic({
-        code: isMetadataHeader(actualHeader)
+        code: isOneRosterMetadataHeader(actualHeader)
           ? "schema.metadata_column_position"
           : "schema.header_order_mismatch",
-        message: isMetadataHeader(actualHeader)
+        message: isOneRosterMetadataHeader(actualHeader)
           ? "OneRoster metadata columns must appear after all spec-defined columns."
           : "OneRoster CSV headers must match the spec-defined order and case.",
         fileName: table.fileName,
@@ -75,7 +77,7 @@ export function validateOneRosterCsvRecordHeader(
   for (let index = expectedHeaders.length; index < table.header.length; index += 1) {
     const header = table.header[index];
 
-    if (header === undefined || isMetadataHeader(header)) {
+    if (header === undefined || isOneRosterMetadataHeader(header)) {
       continue;
     }
 
@@ -86,7 +88,7 @@ export function validateOneRosterCsvRecordHeader(
         fileName: table.fileName,
         rowNumber: 1,
         field: header,
-        expected: `${metadataHeaderPrefix}*`,
+        expected: `${oneRosterMetadataHeaderPrefix}*`,
         actual: header,
       }),
     );
@@ -97,8 +99,4 @@ export function validateOneRosterCsvRecordHeader(
   }
 
   return table.header.slice(expectedHeaders.length);
-}
-
-function isMetadataHeader(value: string): boolean {
-  return value.startsWith(metadataHeaderPrefix) && value.length > metadataHeaderPrefix.length;
 }

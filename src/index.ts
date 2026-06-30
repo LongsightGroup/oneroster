@@ -24,6 +24,10 @@ export {
 export type { OneRosterCsvDataFileName, OneRosterCsvFileName } from "./one-roster-csv-file.js";
 export { parseOneRosterCsvPackageEntries, parseOneRosterCsvZip } from "./one-roster-csv-package.js";
 export {
+  manifestPropertyNameForDataFileName,
+  oneRosterManifestRows,
+} from "./one-roster-csv-manifest.js";
+export {
   writeOneRosterCsvPackageEntries,
   writeOneRosterCsvPackageZip,
 } from "./one-roster-csv-package-writer.js";
@@ -31,6 +35,7 @@ export type {
   OneRosterCsvPackage,
   OneRosterCsvPackageDiagnostic,
   OneRosterCsvPackageDiagnosticCode,
+  OneRosterCsvPackageEntriesOptions,
   OneRosterCsvPackageOptions,
   OneRosterCsvTable,
   OneRosterCsvTableRow,
@@ -45,6 +50,30 @@ export type {
   OneRosterCsvPackageWriteDiagnosticCode,
   OneRosterCsvWriteOptions,
 } from "./one-roster-csv-package-writer.js";
+export {
+  formatOneRosterDiagnosticLocation,
+  getOneRosterRecordStatus,
+  getOneRosterUserStatus,
+} from "./one-roster-csv-display.js";
+export type {
+  OneRosterDiagnosticLocationInput,
+  OneRosterRecordStatus,
+} from "./one-roster-csv-display.js";
+export {
+  oneRosterRecordToCsvCells,
+  oneRosterRecordToCsvObject,
+} from "./one-roster-csv-record-projection.js";
+export type {
+  OneRosterCsvRecordByFileName,
+  OneRosterCsvRecordObject,
+  OneRosterCsvSerializableFileName,
+} from "./one-roster-csv-record-projection.js";
+export {
+  gradebookTableHeaders,
+  oneRosterCsvTableHeaders,
+  resourcesTableHeaders,
+  rosteringTableHeaders,
+} from "./one-roster-csv-schema.js";
 export {
   parseOneRosterBooleanToken,
   parseOneRosterDate,
@@ -119,14 +148,34 @@ export type {
 export { parseOneRosterCsvFullPackage, parseOneRosterCsvFullZip } from "./one-roster-csv-full.js";
 export { writeOneRosterCsvFullZip } from "./one-roster-csv-full-writer.js";
 export {
+  parseAndValidateOneRosterCsvFullEntries,
   parseAndValidateOneRosterCsvFullZip,
   validateOneRosterCsvFullPackage,
 } from "./one-roster-csv-full-validation.js";
+export {
+  getOneRosterLineItemLearningObjectiveLinks,
+  getOneRosterLineItemScoreScales,
+  getOneRosterResultLearningObjectiveLinks,
+  getOneRosterResultScoreScales,
+  iterateResolvedStudentEnrollments,
+} from "./one-roster-csv-full-resolved.js";
 export type { OneRosterCsvFullPackage } from "./one-roster-csv-full.js";
 export type {
+  OneRosterCsvFullEntriesValidationOptions,
+  OneRosterCsvFullPackageValidationOptions,
   OneRosterCsvFullValidationOptions,
+  OneRosterCsvFullZipValidationOptions,
   OneRosterCsvValidatedFullPackage,
 } from "./one-roster-csv-full-validation.js";
+export type {
+  OneRosterCsvFullResolvedIndexInput,
+  OneRosterCsvFullResolvedIndexes,
+  OneRosterCsvResolvedFullPackage,
+  OneRosterResolvedLineItemScoreScale,
+  OneRosterResolvedRelationshipOptions,
+  OneRosterResolvedResultScoreScale,
+  OneRosterResolvedStudentEnrollment,
+} from "./one-roster-csv-full-resolved.js";
 export {
   parseOneRosterCsvRosteringPackage,
   parseOneRosterCsvRosteringZip,
@@ -180,9 +229,6 @@ export type {
   ZipReadLimits,
   ZipReadOptions,
 } from "./zip.js";
-
-/** Normalized record status used by application consumers. */
-export type OneRosterRecordStatus = "active" | "inactive";
 
 /** Severity for parse, normalization, and validation diagnostics. */
 export type OneRosterDiagnosticSeverity = "error" | "warning";

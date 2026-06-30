@@ -253,8 +253,10 @@ export function buildResourceRoleEvidence(
 ): ResourceRoleEvidence {
   const roles = new Set<OneRosterResourceRole>();
   let hasEvidence = false;
+  const userEnrollments =
+    context.semanticIndexes.enrollmentsByUserSourcedId.get(userSourcedId) ?? [];
 
-  for (const enrollment of context.semanticIndexes.enrollmentsByUser.get(userSourcedId) ?? []) {
+  for (const enrollment of userEnrollments) {
     hasEvidence = true;
     roles.add(enrollment.role);
   }

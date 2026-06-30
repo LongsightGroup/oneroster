@@ -1,5 +1,15 @@
 import {
+  formatOneRosterDiagnosticLocation,
+  getOneRosterLineItemScoreScales,
+  getOneRosterRecordStatus,
+  getOneRosterUserStatus,
+  iterateResolvedStudentEnrollments,
+  oneRosterCsvTableHeaders,
+  oneRosterManifestRows,
+  oneRosterRecordToCsvCells,
+  oneRosterRecordToCsvObject,
   ok,
+  parseAndValidateOneRosterCsvFullEntries,
   parseAndValidateOneRosterCsvFullZip,
   parseAndValidateOneRosterCsvGradebookZip,
   parseAndValidateOneRosterCsvResourcesZip,
@@ -24,6 +34,7 @@ import {
   type OneRosterCsvPackageWriteDiagnostic,
   type OneRosterCsvResourcesPackage,
   type OneRosterCsvRosteringPackage,
+  type OneRosterCsvValidatedFullPackage,
   type Result,
   type ZipEntry,
 } from "../src/index.js";
@@ -38,6 +49,22 @@ export function parseEntriesExample(
   entries: readonly ZipEntry[],
 ): Result<OneRosterCsvPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   return parseOneRosterCsvPackageEntries(entries);
+}
+
+export function entriesOptionTypeChecks(entries: readonly ZipEntry[]): void {
+  parseOneRosterCsvPackageEntries(entries, { oneRosterVersion: "1.2" });
+  parseAndValidateOneRosterCsvFullEntries(entries, {
+    oneRosterVersion: "1.2",
+    referenceMode: "allRows",
+  });
+  parseOneRosterCsvPackageEntries(entries, {
+    // @ts-expect-error Already-extracted package entries do not accept ZIP read options.
+    zip: { limits: { maxEntries: 1 } },
+  });
+  parseAndValidateOneRosterCsvFullEntries(entries, {
+    // @ts-expect-error Already-extracted full package entries do not accept ZIP read options.
+    zip: { limits: { maxEntries: 1 } },
+  });
 }
 
 export function parseCsvExample(text: string): Result<CsvDocument, CsvParseDiagnostic> {
@@ -61,6 +88,18 @@ export function validateFullExample(
   }
 
   return ok(result.value.gradebookValidation.indexes.resultsBySourcedId.size);
+}
+
+export function validateFullEntriesExample(
+  entries: readonly ZipEntry[],
+): Result<number, readonly OneRosterCsvPackageDiagnostic[]> {
+  const result = parseAndValidateOneRosterCsvFullEntries(entries, { referenceMode: "allRows" });
+
+  if (result._tag === "err") {
+    return result;
+  }
+
+  return ok(result.value.resolvedIndexes.usersBySourcedId.size);
 }
 
 export function validateRosteringExample(
@@ -127,6 +166,52 @@ export function writeFullExample(
   packageValue: OneRosterCsvFullPackage,
 ): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
   return writeOneRosterCsvFullZip(packageValue);
+}
+
+export function manifestRowsExample(
+  packageValue: OneRosterCsvPackage,
+): ReadonlyArray<readonly string[]> {
+  return oneRosterManifestRows(packageValue.manifest.fileModes, packageValue.manifest.source);
+}
+
+export function tableHeaderExample(): readonly string[] {
+  return oneRosterCsvTableHeaders["users.csv"];
+}
+
+export function recordProjectionExample(packageValue: OneRosterCsvFullPackage): readonly string[] {
+  const user = packageValue.rosteringPackage.users[0];
+
+  if (user === undefined) {
+    return [];
+  }
+
+  const object = oneRosterRecordToCsvObject("users.csv", user);
+
+  return [...oneRosterRecordToCsvCells("users.csv", user), object["username"] ?? ""];
+}
+
+export function statusExample(packageValue: OneRosterCsvFullPackage): string {
+  const user = packageValue.rosteringPackage.users[0];
+
+  if (user === undefined) {
+    return "missing";
+  }
+
+  return `${getOneRosterRecordStatus(user)}:${getOneRosterUserStatus(user)}`;
+}
+
+export function relationshipHelperExample(packageValue: OneRosterCsvValidatedFullPackage): number {
+  const lineItem = packageValue.fullPackage.gradebookPackage.lineItems[0];
+  const scoreScaleCount =
+    lineItem === undefined ? 0 : getOneRosterLineItemScoreScales(packageValue, lineItem).length;
+
+  return [...iterateResolvedStudentEnrollments(packageValue)].length + scoreScaleCount;
+}
+
+export function diagnosticLocationExample(
+  diagnostic: OneRosterCsvPackageDiagnostic,
+): string | null {
+  return formatOneRosterDiagnosticLocation(diagnostic);
 }
 
 export function diagnosticCodeExample(

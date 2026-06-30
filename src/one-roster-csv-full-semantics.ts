@@ -1,3 +1,4 @@
+import type { OneRosterEnrollmentRelationshipIndexes } from "./one-roster-csv-enrollment-indexes.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import type { OneRosterCsvFullPackage } from "./one-roster-csv-full.js";
 import type { OneRosterCsvGradebookReferenceIndexes } from "./one-roster-csv-gradebook-types.js";
@@ -15,6 +16,7 @@ export type OneRosterCsvFullSemanticValidationInput = {
   readonly rosteringIndexes: OneRosterCsvRosteringReferenceIndexes;
   readonly gradebookIndexes: OneRosterCsvGradebookReferenceIndexes;
   readonly resourcesIndexes: OneRosterCsvResourcesReferenceIndexes;
+  readonly enrollmentIndexes: OneRosterEnrollmentRelationshipIndexes;
   readonly diagnostics: OneRosterCsvPackageDiagnostic[];
   readonly referenceMode: OneRosterCsvReferenceValidationMode;
 };

@@ -3,9 +3,25 @@ import {
   type OneRosterCsvGradebookValidationState,
   type OneRosterCsvValidatedGradebookPackage,
 } from "./one-roster-csv-gradebook-validation.js";
-import { parseOneRosterCsvFullZip, type OneRosterCsvFullPackage } from "./one-roster-csv-full.js";
+import {
+  buildEnrollmentRelationshipIndexes,
+  type OneRosterEnrollmentRelationshipIndexes,
+} from "./one-roster-csv-enrollment-indexes.js";
+import {
+  buildOneRosterCsvFullResolvedIndexes,
+  type OneRosterCsvResolvedFullPackage,
+} from "./one-roster-csv-full-resolved.js";
+import {
+  parseOneRosterCsvFullPackage,
+  parseOneRosterCsvFullZip,
+  type OneRosterCsvFullPackage,
+} from "./one-roster-csv-full.js";
 import { validateOneRosterCsvFullSemanticRules } from "./one-roster-csv-full-semantics.js";
-import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
+import {
+  parseOneRosterCsvPackageEntries,
+  type OneRosterCsvPackageEntriesOptions,
+  type OneRosterCsvPackageOptions,
+} from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import { validatedRosteringPackage } from "./one-roster-csv-profile-validator.js";
 import type { OneRosterCsvReferenceValidationOptions } from "./one-roster-csv-record-reference-validation.js";
@@ -20,12 +36,23 @@ import {
   type OneRosterCsvValidatedRosteringPackage,
 } from "./one-roster-csv-rostering-validation.js";
 import { err, ok, type Result } from "./result.js";
+import type { ZipEntry } from "./zip.js";
 
 export type { OneRosterCsvReferenceValidationOptions as OneRosterCsvFullValidationOptions } from "./one-roster-csv-record-reference-validation.js";
 
+/** Options for parsing and validating full OneRoster CSV ZIP packages. */
+export type OneRosterCsvFullZipValidationOptions = OneRosterCsvPackageOptions &
+  OneRosterCsvReferenceValidationOptions;
+
+/** Backward-compatible alias for full ZIP package validation options. */
+export type OneRosterCsvFullPackageValidationOptions = OneRosterCsvFullZipValidationOptions;
+
+/** Options for validating already-extracted full OneRoster CSV package entries. */
+export type OneRosterCsvFullEntriesValidationOptions = OneRosterCsvPackageEntriesOptions &
+  OneRosterCsvReferenceValidationOptions;
+
 /** OneRoster CSV full package that has passed duplicate and reference validation. */
-export type OneRosterCsvValidatedFullPackage = {
-  readonly fullPackage: OneRosterCsvFullPackage;
+export type OneRosterCsvValidatedFullPackage = OneRosterCsvResolvedFullPackage & {
   readonly rosteringValidation: OneRosterCsvValidatedRosteringPackage;
   readonly gradebookValidation: OneRosterCsvValidatedGradebookPackage;
   readonly resourcesValidation: OneRosterCsvValidatedResourcesPackage;
@@ -34,7 +61,7 @@ export type OneRosterCsvValidatedFullPackage = {
 /** Parse a OneRoster CSV ZIP archive and validate all supported CSV record layers. */
 export function parseAndValidateOneRosterCsvFullZip(
   bytes: Uint8Array,
-  options: OneRosterCsvPackageOptions & OneRosterCsvReferenceValidationOptions = {},
+  options: OneRosterCsvFullZipValidationOptions = {},
 ): Result<OneRosterCsvValidatedFullPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   const parsedPackage = parseOneRosterCsvFullZip(bytes, options);
 
@@ -43,6 +70,26 @@ export function parseAndValidateOneRosterCsvFullZip(
   }
 
   return validateOneRosterCsvFullPackage(parsedPackage.value, options);
+}
+
+/** Parse already-extracted CSV package entries and validate all supported CSV record layers. */
+export function parseAndValidateOneRosterCsvFullEntries(
+  entries: readonly ZipEntry[],
+  options: OneRosterCsvFullEntriesValidationOptions = {},
+): Result<OneRosterCsvValidatedFullPackage, readonly OneRosterCsvPackageDiagnostic[]> {
+  const parsedPackage = parseOneRosterCsvPackageEntries(entries, options);
+
+  if (parsedPackage._tag === "err") {
+    return err(parsedPackage.error);
+  }
+
+  const fullPackage = parseOneRosterCsvFullPackage(parsedPackage.value);
+
+  if (fullPackage._tag === "err") {
+    return err(fullPackage.error);
+  }
+
+  return validateOneRosterCsvFullPackage(fullPackage.value, options);
 }
 
 /** Validate duplicate sourcedIds and direct references in all supported CSV record layers. */
@@ -60,20 +107,29 @@ export function validateOneRosterCsvFullPackage(
     packageValue.rosteringPackage,
     validation.rosteringValidation,
   );
+  const gradebookValidation = {
+    gradebookPackage: packageValue.gradebookPackage,
+    rosteringValidation,
+    indexes: validation.gradebookValidation.indexes,
+  };
+  const resourcesValidation = {
+    resourcesPackage: packageValue.resourcesPackage,
+    rosteringValidation,
+    indexes: validation.resourcesValidation.indexes,
+  };
 
   return ok({
     fullPackage: packageValue,
     rosteringValidation,
-    gradebookValidation: {
-      gradebookPackage: packageValue.gradebookPackage,
-      rosteringValidation,
-      indexes: validation.gradebookValidation.indexes,
-    },
-    resourcesValidation: {
-      resourcesPackage: packageValue.resourcesPackage,
-      rosteringValidation,
-      indexes: validation.resourcesValidation.indexes,
-    },
+    gradebookValidation,
+    resourcesValidation,
+    resolvedIndexes: buildOneRosterCsvFullResolvedIndexes({
+      fullPackage: packageValue,
+      rosteringIndexes: rosteringValidation.indexes,
+      gradebookIndexes: gradebookValidation.indexes,
+      resourcesIndexes: resourcesValidation.indexes,
+      enrollmentIndexes: validation.enrollmentIndexes,
+    }),
   });
 }
 
@@ -82,6 +138,7 @@ export type OneRosterCsvFullValidationState = {
   readonly rosteringValidation: OneRosterCsvRosteringValidationState;
   readonly gradebookValidation: OneRosterCsvGradebookValidationState;
   readonly resourcesValidation: OneRosterCsvResourcesValidationState;
+  readonly enrollmentIndexes: OneRosterEnrollmentRelationshipIndexes;
   readonly diagnostics: readonly OneRosterCsvPackageDiagnostic[];
 };
 
@@ -89,6 +146,9 @@ function collectOneRosterCsvFullValidation(
   packageValue: OneRosterCsvFullPackage,
   options: OneRosterCsvReferenceValidationOptions,
 ): OneRosterCsvFullValidationState {
+  const enrollmentIndexes = buildEnrollmentRelationshipIndexes(
+    packageValue.rosteringPackage.enrollments,
+  );
   const rosteringValidation = collectOneRosterCsvRosteringValidation(
     packageValue.rosteringPackage,
     options,
@@ -119,6 +179,7 @@ function collectOneRosterCsvFullValidation(
     rosteringIndexes: rosteringValidation.indexes,
     gradebookIndexes: gradebookValidation.indexes,
     resourcesIndexes: resourcesValidation.indexes,
+    enrollmentIndexes,
     diagnostics,
     referenceMode: options.referenceMode ?? "bulkOnly",
   });
@@ -127,6 +188,7 @@ function collectOneRosterCsvFullValidation(
     rosteringValidation,
     gradebookValidation,
     resourcesValidation,
+    enrollmentIndexes,
     diagnostics,
   };
 }

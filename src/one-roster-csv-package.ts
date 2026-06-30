@@ -23,10 +23,14 @@ export type OneRosterCsvPackage = {
   readonly tables: ReadonlyArray<OneRosterCsvTable>;
 };
 
-/** Options for parsing OneRoster CSV ZIP packages. */
-export type OneRosterCsvPackageOptions = {
-  readonly zip?: ZipReadOptions;
+/** Options for parsing already-extracted OneRoster CSV package entries. */
+export type OneRosterCsvPackageEntriesOptions = {
   readonly oneRosterVersion?: "1.2";
+};
+
+/** Options for parsing OneRoster CSV ZIP packages. */
+export type OneRosterCsvPackageOptions = OneRosterCsvPackageEntriesOptions & {
+  readonly zip?: ZipReadOptions;
 };
 
 /** Parse a OneRoster CSV ZIP archive into a strict manifest and normalized raw tables. */
@@ -46,7 +50,7 @@ export function parseOneRosterCsvZip(
 /** Parse already-extracted root-level ZIP entries into a strict OneRoster CSV package. */
 export function parseOneRosterCsvPackageEntries(
   entries: readonly ZipEntry[],
-  options: OneRosterCsvPackageOptions = {},
+  options: OneRosterCsvPackageEntriesOptions = {},
 ): Result<OneRosterCsvPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   const expectedOneRosterVersion = options.oneRosterVersion ?? "1.2";
   const diagnostics: OneRosterCsvPackageDiagnostic[] = [];

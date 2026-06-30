@@ -4,6 +4,10 @@ import {
 } from "./one-roster-csv-package-diagnostic.js";
 import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
 import type { OneRosterCsvDataFileName } from "./one-roster-csv-file.js";
+import {
+  isOneRosterMetadataHeader,
+  oneRosterMetadataHeaderPrefix,
+} from "./one-roster-csv-metadata.js";
 import type { OneRosterGuid } from "./one-roster-csv-primitive.js";
 import type { OneRosterCsvRecordRowContext } from "./one-roster-csv-record-context.js";
 import { validateOneRosterCsvRecordHeader } from "./one-roster-csv-record-header.js";
@@ -246,8 +250,6 @@ function findTable(
   return undefined;
 }
 
-const metadataHeaderPrefix = "metadata.";
-
 /** Write one typed record table into a package-ready CSV table. */
 export function writeOneRosterCsvRecordTable<
   TPackage,
@@ -333,7 +335,7 @@ function collectMetadataHeaders<TPackage, TIndexes, TRecord extends OneRosterCsv
 
   for (const record of records) {
     for (const key of Object.keys(record.metadata)) {
-      if (!isMetadataHeader(key)) {
+      if (!isOneRosterMetadataHeader(key)) {
         valid = false;
         diagnostics.push(
           packageWriteDiagnostic({
@@ -341,7 +343,7 @@ function collectMetadataHeaders<TPackage, TIndexes, TRecord extends OneRosterCsv
             message: "OneRoster CSV metadata keys must be metadata-prefixed headers.",
             fileName: tableDefinition.fileName,
             rowNumber: record.rowNumber,
-            expected: `${metadataHeaderPrefix}*`,
+            expected: `${oneRosterMetadataHeaderPrefix}*`,
             actual: "invalid metadata header",
           }),
         );
@@ -357,8 +359,4 @@ function collectMetadataHeaders<TPackage, TIndexes, TRecord extends OneRosterCsv
   }
 
   return [...metadataHeaders].toSorted();
-}
-
-function isMetadataHeader(value: string): boolean {
-  return value.startsWith(metadataHeaderPrefix) && value.length > metadataHeaderPrefix.length;
 }

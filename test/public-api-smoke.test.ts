@@ -3,11 +3,18 @@ import { describe, expect, it } from "vitest";
 import * as oneRoster from "../src/index.js";
 import {
   diagnosticCodeExample,
+  diagnosticLocationExample,
+  manifestRowsExample,
   parseCsvExample,
   parseEntriesExample,
   parseRawPackageExample,
+  recordProjectionExample,
   resultNarrowingExample,
+  relationshipHelperExample,
+  statusExample,
+  tableHeaderExample,
   validateFullExample,
+  validateFullEntriesExample,
   validateGradebookExample,
   validateResourcesExample,
   validateRosteringExample,
@@ -82,6 +89,9 @@ describe("public API smoke tests", () => {
     expect(validateGradebookExample(gradebookBytes)._tag).toBe("ok");
     expect(validateResourcesExample(resourcesBytes)._tag).toBe("ok");
     expect(validateFullExample(fullBytes)._tag).toBe("ok");
+    expect(validateFullEntriesExample(expectOk(oneRoster.readZipEntries(fullBytes)))._tag).toBe(
+      "ok",
+    );
 
     const rosteringPackage = expectRosteringOk(
       oneRoster.parseOneRosterCsvRosteringZip(rosteringBytes),
@@ -93,12 +103,29 @@ describe("public API smoke tests", () => {
       oneRoster.parseOneRosterCsvResourcesZip(resourcesBytes),
     );
     const fullPackage = expectFullOk(oneRoster.parseOneRosterCsvFullZip(fullBytes));
+    const validatedFullPackage = expectOk(oneRoster.parseAndValidateOneRosterCsvFullZip(fullBytes));
 
     expect(expectOk(writeRawPackageExample(rawPackage))).toBeInstanceOf(Uint8Array);
     expect(expectOk(writeRosteringExample(rosteringPackage))).toBeInstanceOf(Uint8Array);
     expect(expectOk(writeGradebookExample(gradebookPackage))).toBeInstanceOf(Uint8Array);
     expect(expectOk(writeResourcesExample(resourcesPackage))).toBeInstanceOf(Uint8Array);
     expect(expectOk(writeFullExample(fullPackage))).toBeInstanceOf(Uint8Array);
+    expect(manifestRowsExample(rawPackage)[0]).toEqual(["propertyName", "value"]);
+    expect(tableHeaderExample()).toContain("enabledUser");
+    expect(recordProjectionExample(fullPackage)).toContain("user-agent");
+    expect(statusExample(fullPackage)).toBe("active:active");
+    expect(relationshipHelperExample(validatedFullPackage)).toBeGreaterThan(0);
+    expect(
+      diagnosticLocationExample({
+        _tag: "OneRosterCsvPackageDiagnostic",
+        severity: "error",
+        code: "row.invalid_boolean",
+        message: "x",
+        fileName: "users.csv",
+        rowNumber: 2,
+        field: "enabledUser",
+      }),
+    ).toBe("users.csv: row 2: field enabledUser");
 
     expect(
       diagnosticCodeExample({

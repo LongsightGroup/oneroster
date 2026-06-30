@@ -12,7 +12,7 @@ import {
   type OneRosterCsvFileName,
 } from "./one-roster-csv-file.js";
 import {
-  manifestPropertyNameForDataFileName,
+  oneRosterManifestRows,
   type OneRosterManifestFileMode,
   type OneRosterManifestFileModes,
   type OneRosterManifestSource,
@@ -148,7 +148,7 @@ export function writeOneRosterCsvPackageEntriesFromTables(
   }
 
   const entries: ZipEntry[] = [];
-  const manifest = writeCsvBytes(manifestRows(input.fileModes, input.source), options);
+  const manifest = writeCsvBytes(oneRosterManifestRows(input.fileModes, input.source), options);
 
   if (manifest._tag === "err") {
     return err([packageWriteDiagnosticFromCsv(manifest.error, "manifest.csv")]);
@@ -331,31 +331,6 @@ function validateWritableTablesAgainstManifest(
       );
     }
   }
-}
-
-function manifestRows(
-  fileModes: OneRosterManifestFileModes,
-  source: OneRosterManifestSource | undefined,
-): ReadonlyArray<readonly string[]> {
-  const rows: Array<readonly string[]> = [
-    ["propertyName", "value"],
-    ["manifest.version", "1.0"],
-    ["oneroster.version", "1.2"],
-  ];
-
-  for (const fileName of oneRosterCsvDataFileNames) {
-    rows.push([manifestPropertyNameForDataFileName(fileName), fileModes[fileName]]);
-  }
-
-  if (source?.systemName !== undefined) {
-    rows.push(["source.systemName", source.systemName]);
-  }
-
-  if (source?.systemCode !== undefined) {
-    rows.push(["source.systemCode", source.systemCode]);
-  }
-
-  return rows;
 }
 
 function packageWriteDiagnosticFromCsv(

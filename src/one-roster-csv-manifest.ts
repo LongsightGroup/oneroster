@@ -66,6 +66,32 @@ export function manifestPropertyNameForDataFileName(fileName: OneRosterCsvDataFi
   return `file.${fileName.slice(0, fileName.length - ".csv".length)}`;
 }
 
+/** Build canonical manifest.csv rows in OneRoster CSV 1.2 file order. */
+export function oneRosterManifestRows(
+  fileModes: OneRosterManifestFileModes,
+  source?: OneRosterManifestSource,
+): ReadonlyArray<readonly string[]> {
+  const rows: Array<readonly string[]> = [
+    ["propertyName", "value"],
+    ["manifest.version", "1.0"],
+    ["oneroster.version", "1.2"],
+  ];
+
+  for (const fileName of oneRosterCsvDataFileNames) {
+    rows.push([manifestPropertyNameForDataFileName(fileName), fileModes[fileName]]);
+  }
+
+  if (source?.systemName !== undefined) {
+    rows.push(["source.systemName", source.systemName]);
+  }
+
+  if (source?.systemCode !== undefined) {
+    rows.push(["source.systemCode", source.systemCode]);
+  }
+
+  return rows;
+}
+
 function parseOneRosterManifestDocument(
   document: CsvDocument,
   expectedOneRosterVersion: "1.2",
