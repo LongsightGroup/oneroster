@@ -28,8 +28,11 @@ export {
   oneRosterManifestRows,
 } from "./one-roster-csv-manifest.js";
 export {
+  createOneRosterManifestFileModes,
   writeOneRosterCsvPackageEntries,
   writeOneRosterCsvPackageZip,
+  writeOneRosterCsvPackageZipFromEntries,
+  writeOneRosterCsvPackageZipFromFiles,
 } from "./one-roster-csv-package-writer.js";
 export type {
   OneRosterCsvPackage,
@@ -51,6 +54,7 @@ export type {
   OneRosterCsvWriteOptions,
 } from "./one-roster-csv-package-writer.js";
 export {
+  formatOneRosterUserDisplayName,
   formatOneRosterDiagnosticLocation,
   getOneRosterRecordStatus,
   getOneRosterUserStatus,
@@ -58,6 +62,8 @@ export {
 export type {
   OneRosterDiagnosticLocationInput,
   OneRosterRecordStatus,
+  OneRosterUserDisplayNameFallbackField,
+  OneRosterUserDisplayNameOptions,
 } from "./one-roster-csv-display.js";
 export {
   oneRosterRecordToCsvCells,
@@ -146,20 +152,30 @@ export type {
   OneRosterCsvValidatedResourcesPackage,
 } from "./one-roster-csv-resources-validation.js";
 export { parseOneRosterCsvFullPackage, parseOneRosterCsvFullZip } from "./one-roster-csv-full.js";
-export { writeOneRosterCsvFullZip } from "./one-roster-csv-full-writer.js";
+export {
+  writeOneRosterCsvFullPackageEntriesFromRecords,
+  writeOneRosterCsvFullPackageZipFromRecords,
+  writeOneRosterCsvFullZip,
+} from "./one-roster-csv-full-writer.js";
 export {
   parseAndValidateOneRosterCsvFullEntries,
   parseAndValidateOneRosterCsvFullZip,
   validateOneRosterCsvFullPackage,
 } from "./one-roster-csv-full-validation.js";
 export {
+  getFirstActiveOneRosterResultScoreScale,
   getOneRosterLineItemLearningObjectiveLinks,
   getOneRosterLineItemScoreScales,
   getOneRosterResultLearningObjectiveLinks,
   getOneRosterResultScoreScales,
+  getResultScoreScaleSourcedIdsByResultSourcedId,
   iterateResolvedStudentEnrollments,
 } from "./one-roster-csv-full-resolved.js";
 export type { OneRosterCsvFullPackage } from "./one-roster-csv-full.js";
+export type {
+  OneRosterCsvFullPackageRecordCollections,
+  OneRosterCsvFullPackageRecordWriteOptions,
+} from "./one-roster-csv-full-writer.js";
 export type {
   OneRosterCsvFullEntriesValidationOptions,
   OneRosterCsvFullPackageValidationOptions,

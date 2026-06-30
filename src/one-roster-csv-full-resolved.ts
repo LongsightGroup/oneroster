@@ -165,6 +165,41 @@ export function getOneRosterResultScoreScales(
   );
 }
 
+/**
+ * Return the first active resolved score-scale link for a results.csv record, or null.
+ * Inactive parent results, inactive link rows, and inactive scoreScales.csv targets are
+ * omitted using the same default filtering as `getOneRosterResultScoreScales`.
+ */
+export function getFirstActiveOneRosterResultScoreScale(
+  validatedPackage: OneRosterCsvResolvedFullPackage,
+  result: OneRosterResultRecord,
+  options: OneRosterResolvedRelationshipOptions = {},
+): OneRosterResolvedResultScoreScale | null {
+  return resolveFirstResultScoreScale(validatedPackage, result, options);
+}
+
+/**
+ * Return the first resolved scoreScale sourcedId for each results.csv sourcedId.
+ * Multiple links are resolved in package order; inactive records are omitted unless
+ * `includeInactive` is true.
+ */
+export function getResultScoreScaleSourcedIdsByResultSourcedId(
+  validatedPackage: OneRosterCsvResolvedFullPackage,
+  options: OneRosterResolvedRelationshipOptions = {},
+): ReadonlyMap<string, string> {
+  const sourcedIdsByResultSourcedId = new Map<string, string>();
+
+  for (const result of validatedPackage.fullPackage.gradebookPackage.results) {
+    const scoreScale = resolveFirstResultScoreScale(validatedPackage, result, options);
+
+    if (scoreScale !== null) {
+      sourcedIdsByResultSourcedId.set(result.sourcedId, scoreScale.scoreScale.sourcedId);
+    }
+  }
+
+  return sourcedIdsByResultSourcedId;
+}
+
 /** Return resolved score-scale links for a lineItems.csv record. */
 export function getOneRosterLineItemScoreScales(
   validatedPackage: OneRosterCsvResolvedFullPackage,
@@ -210,6 +245,22 @@ export function getOneRosterLineItemLearningObjectiveLinks(
     ) ?? [],
     options,
   );
+}
+
+function resolveFirstResultScoreScale(
+  validatedPackage: OneRosterCsvResolvedFullPackage,
+  result: OneRosterResultRecord,
+  options: OneRosterResolvedRelationshipOptions,
+): OneRosterResolvedResultScoreScale | null {
+  const resolved = resolveScoreScaleLinks(
+    validatedPackage,
+    result,
+    validatedPackage.resolvedIndexes.resultScoreScalesByResultSourcedId.get(result.sourcedId) ?? [],
+    options,
+    (link, scoreScale) => ({ link, scoreScale }),
+  );
+
+  return resolved[0] ?? null;
 }
 
 function resolveScoreScaleLinks<

@@ -14,6 +14,14 @@ export type OneRosterDiagnosticLocationInput = {
   readonly propertyName?: string;
 };
 
+/** Fallback fields accepted by OneRoster user display-name formatting. */
+export type OneRosterUserDisplayNameFallbackField = "username" | "email" | "sourcedId";
+
+/** Options for OneRoster user display-name formatting. */
+export type OneRosterUserDisplayNameOptions = {
+  readonly fallbackOrder?: readonly OneRosterUserDisplayNameFallbackField[];
+};
+
 /** Return normalized active/inactive status for any typed OneRoster CSV record. */
 export function getOneRosterRecordStatus(record: OneRosterCsvRecordBase): OneRosterRecordStatus {
   if (record.lifecycle.mode === "delta" && record.lifecycle.status === "tobedeleted") {
@@ -30,6 +38,30 @@ export function getOneRosterUserStatus(user: OneRosterUserRecord): OneRosterReco
   }
 
   return "active";
+}
+
+/** Format a stable display name for a OneRoster users.csv record. */
+export function formatOneRosterUserDisplayName(
+  user: OneRosterUserRecord,
+  options: OneRosterUserDisplayNameOptions = {},
+): string {
+  const givenName = user.givenName.trim();
+  const familyName = user.familyName.trim();
+  const fullName = [givenName, familyName].filter((part) => part !== "").join(" ");
+
+  if (fullName !== "") {
+    return fullName;
+  }
+
+  for (const field of options.fallbackOrder ?? ["username", "email"]) {
+    const value = displayNameFallbackValue(user, field);
+
+    if (value !== "") {
+      return value;
+    }
+  }
+
+  return user.sourcedId;
 }
 
 /** Format safe diagnostic location fields for consistent display. */
@@ -61,4 +93,15 @@ export function formatOneRosterDiagnosticLocation(
   }
 
   return parts.length === 0 ? null : parts.join(": ");
+}
+
+function displayNameFallbackValue(
+  user: OneRosterUserRecord,
+  field: OneRosterUserDisplayNameFallbackField,
+): string {
+  if (field === "email") {
+    return user.email?.trim() ?? "";
+  }
+
+  return user[field].trim();
 }

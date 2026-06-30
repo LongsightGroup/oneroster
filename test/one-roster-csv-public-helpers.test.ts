@@ -6,6 +6,8 @@ import { fullCsvModes, validBulkFullGraphFiles } from "./fixtures/one-roster-csv
 import {
   lineItemScoreScaleRow,
   lineItemScoreScalesCsv,
+  resultScoreScaleRow,
+  resultScoreScalesCsv,
 } from "./fixtures/one-roster-csv-gradebook-rows.js";
 import { expectValidatedFullOk } from "./fixtures/one-roster-csv-full-assertions.js";
 import { manifestCsv, zipPackage } from "./fixtures/one-roster-csv-package-fixtures.js";
@@ -17,7 +19,13 @@ import {
   userRow,
   usersCsv,
 } from "./fixtures/one-roster-csv-rostering-rows.js";
-import { expectErr, expectOk, onlyRecord } from "./fixtures/result-assertions.js";
+import {
+  expectErr,
+  expectOk,
+  expectPackageWriteErr,
+  expectPackageWriteOk,
+  onlyRecord,
+} from "./fixtures/result-assertions.js";
 
 const textEncoder = new TextEncoder();
 
@@ -174,6 +182,98 @@ describe("OneRoster CSV public helper APIs", () => {
     ).toThrow("metadata.*");
   });
 
+  it("writes a full package directly from typed record collections", () => {
+    const validated = validFullPackage("bulk");
+    const recordCollections = recordCollectionsFromValidated(validated);
+    const entries = expectPackageWriteOk(
+      oneRoster.writeOneRosterCsvFullPackageEntriesFromRecords(recordCollections, {
+        source: {
+          systemName: "Record Writer",
+          systemCode: "RW-1",
+        },
+      }),
+    );
+    const zipBytes = expectPackageWriteOk(
+      oneRoster.writeOneRosterCsvFullPackageZipFromRecords(recordCollections),
+    );
+    const roundTrip = expectValidatedFullOk(
+      oneRoster.parseAndValidateOneRosterCsvFullZip(zipBytes, { referenceMode: "allRows" }),
+    );
+
+    expect(entries.map((entry) => entry.path).slice(0, 3)).toEqual([
+      "manifest.csv",
+      "academicSessions.csv",
+      "categories.csv",
+    ]);
+    expect(roundTrip.fullPackage.rosteringPackage.users).toHaveLength(
+      validated.fullPackage.rosteringPackage.users.length,
+    );
+    expect(expectOk(oneRoster.parseOneRosterCsvPackageEntries(entries)).manifest.source).toEqual({
+      systemName: "Record Writer",
+      systemCode: "RW-1",
+    });
+  });
+
+  it("returns writer diagnostics for invalid record collections", () => {
+    const validated = validFullPackage("bulk");
+    const user = recordBySourcedId(validated.fullPackage.rosteringPackage.users, "user-1");
+    const userWithInvalidMetadata = {
+      ...user,
+      metadata: {
+        localCode: "unsafe",
+      },
+    };
+    const deltaDate = oneRoster.parseOneRosterDateTime(conformanceDateLastModified);
+
+    if (deltaDate === undefined) {
+      throw new Error("Expected fixture dateLastModified to parse.");
+    }
+
+    const deltaUser = {
+      ...user,
+      lifecycle: {
+        mode: "delta",
+        status: "active",
+        dateLastModified: deltaDate,
+      },
+    } as const;
+
+    expect(
+      expectPackageWriteErr(
+        oneRoster.writeOneRosterCsvFullPackageZipFromRecords({
+          users: [userWithInvalidMetadata],
+        }),
+      ),
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "write.invalid_metadata_header",
+        fileName: "users.csv",
+      }),
+    );
+    expect(
+      expectPackageWriteErr(
+        oneRoster.writeOneRosterCsvFullPackageZipFromRecords({
+          users: [user, deltaUser],
+        }),
+      ),
+    ).toContainEqual(expect.objectContaining({ code: "write.mixed_lifecycle_modes" }));
+    expect(
+      expectPackageWriteErr(
+        oneRoster.writeOneRosterCsvFullPackageZipFromRecords(
+          { users: [user] },
+          { fileModes: { "users.csv": "delta" } },
+        ),
+      ),
+    ).toContainEqual(
+      expect.objectContaining({
+        code: "write.table_mode_mismatch",
+        fileName: "users.csv",
+        expected: "delta",
+        actual: "bulk",
+      }),
+    );
+  });
+
   it("normalizes record and user status", () => {
     const validated = validFullPackage("delta");
     const user = recordBySourcedId(validated.fullPackage.rosteringPackage.users, "user-1");
@@ -198,6 +298,50 @@ describe("OneRoster CSV public helper APIs", () => {
     expect(oneRoster.getOneRosterUserStatus(user)).toBe("active");
     expect(oneRoster.getOneRosterUserStatus(disabledUser)).toBe("inactive");
     expect(oneRoster.getOneRosterUserStatus(deletedUser)).toBe("inactive");
+  });
+
+  it("formats stable user display names", () => {
+    const validated = validFullPackage("bulk");
+    const user = recordBySourcedId(validated.fullPackage.rosteringPackage.users, "user-1");
+
+    expect(oneRoster.formatOneRosterUserDisplayName(user)).toBe("Given Family");
+    expect(
+      oneRoster.formatOneRosterUserDisplayName({
+        ...user,
+        givenName: " Given ",
+        familyName: "",
+      }),
+    ).toBe("Given");
+    expect(
+      oneRoster.formatOneRosterUserDisplayName({
+        ...user,
+        givenName: "",
+        familyName: "",
+        username: " ",
+        email: " learner@example.edu ",
+      }),
+    ).toBe("learner@example.edu");
+    expect(
+      oneRoster.formatOneRosterUserDisplayName(
+        {
+          ...user,
+          givenName: "",
+          familyName: "",
+          username: "user-name",
+          email: "learner@example.edu",
+        },
+        { fallbackOrder: ["email", "username", "sourcedId"] },
+      ),
+    ).toBe("learner@example.edu");
+    expect(
+      oneRoster.formatOneRosterUserDisplayName({
+        ...user,
+        givenName: "",
+        familyName: "",
+        username: "",
+        email: undefined,
+      }),
+    ).toBe("user-1");
   });
 
   it("formats safe diagnostic locations", () => {
@@ -232,6 +376,12 @@ describe("OneRoster CSV public helper APIs", () => {
     ]);
     expect(oneRoster.getOneRosterLineItemScoreScales(validated, lineItem)).toHaveLength(1);
     expect(oneRoster.getOneRosterResultScoreScales(validated, result)).toHaveLength(1);
+    expect(
+      oneRoster.getFirstActiveOneRosterResultScoreScale(validated, result)?.scoreScale.sourcedId,
+    ).toBe("score-scale-1");
+    expect(
+      oneRoster.getResultScoreScaleSourcedIdsByResultSourcedId(validated).get("result-1"),
+    ).toBe("score-scale-1");
     expect(oneRoster.getOneRosterLineItemLearningObjectiveLinks(validated, lineItem)).toHaveLength(
       1,
     );
@@ -241,11 +391,28 @@ describe("OneRoster CSV public helper APIs", () => {
   it("filters inactive relationship links by default", () => {
     const validated = validFullPackageWithInactiveLineItemScoreScale();
     const lineItem = onlyRecord(validated.fullPackage.gradebookPackage.lineItems);
+    const validatedResultScoreScale = validFullPackageWithInactiveResultScoreScale();
+    const result = onlyRecord(validatedResultScoreScale.fullPackage.gradebookPackage.results);
 
     expect(oneRoster.getOneRosterLineItemScoreScales(validated, lineItem)).toEqual([]);
     expect(
       oneRoster.getOneRosterLineItemScoreScales(validated, lineItem, { includeInactive: true }),
     ).toHaveLength(1);
+    expect(
+      oneRoster.getFirstActiveOneRosterResultScoreScale(validatedResultScoreScale, result),
+    ).toBeNull();
+    expect(
+      oneRoster
+        .getResultScoreScaleSourcedIdsByResultSourcedId(validatedResultScoreScale)
+        .has("result-1"),
+    ).toBe(false);
+    expect(
+      oneRoster
+        .getResultScoreScaleSourcedIdsByResultSourcedId(validatedResultScoreScale, {
+          includeInactive: true,
+        })
+        .get("result-1"),
+    ).toBe("score-scale-1");
   });
 });
 
@@ -301,11 +468,58 @@ function validFullPackageWithInactiveLineItemScoreScale(): oneRoster.OneRosterCs
   );
 }
 
+function validFullPackageWithInactiveResultScoreScale(): oneRoster.OneRosterCsvValidatedFullPackage {
+  return expectValidatedFullOk(
+    oneRoster.parseAndValidateOneRosterCsvFullZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: fullCsvModes("delta") }),
+        ...validBulkFullGraphFiles("delta"),
+        "resultScoreScales.csv": resultScoreScalesCsv([
+          resultScoreScaleRow({
+            status: "tobedeleted",
+            dateLastModified: conformanceDateLastModified,
+          }),
+        ]),
+      }),
+    ),
+  );
+}
+
 function fullPackageZip(mode: "bulk" | "delta"): Uint8Array {
   return zipPackage({
     "manifest.csv": manifestCsv({ modes: fullCsvModes(mode) }),
     ...validBulkFullGraphFiles(mode),
   });
+}
+
+function recordCollectionsFromValidated(
+  validated: oneRoster.OneRosterCsvValidatedFullPackage,
+): oneRoster.OneRosterCsvFullPackageRecordCollections {
+  const { rosteringPackage, gradebookPackage, resourcesPackage } = validated.fullPackage;
+
+  return {
+    academicSessions: rosteringPackage.academicSessions,
+    orgs: rosteringPackage.orgs,
+    courses: rosteringPackage.courses,
+    classes: rosteringPackage.classes,
+    users: rosteringPackage.users,
+    roles: rosteringPackage.roles,
+    enrollments: rosteringPackage.enrollments,
+    demographics: rosteringPackage.demographics,
+    userProfiles: rosteringPackage.userProfiles,
+    categories: gradebookPackage.categories,
+    lineItems: gradebookPackage.lineItems,
+    results: gradebookPackage.results,
+    scoreScales: gradebookPackage.scoreScales,
+    lineItemLearningObjectiveIds: gradebookPackage.lineItemLearningObjectiveIds,
+    lineItemScoreScales: gradebookPackage.lineItemScoreScales,
+    resultLearningObjectiveIds: gradebookPackage.resultLearningObjectiveIds,
+    resultScoreScales: gradebookPackage.resultScoreScales,
+    resources: resourcesPackage.resources,
+    classResources: resourcesPackage.classResources,
+    courseResources: resourcesPackage.courseResources,
+    userResources: resourcesPackage.userResources,
+  };
 }
 
 function recordBySourcedId<TRecord extends { readonly sourcedId: string }>(

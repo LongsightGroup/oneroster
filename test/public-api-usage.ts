@@ -1,8 +1,12 @@
 import {
+  createOneRosterManifestFileModes,
   formatOneRosterDiagnosticLocation,
+  formatOneRosterUserDisplayName,
+  getFirstActiveOneRosterResultScoreScale,
   getOneRosterLineItemScoreScales,
   getOneRosterRecordStatus,
   getOneRosterUserStatus,
+  getResultScoreScaleSourcedIdsByResultSourcedId,
   iterateResolvedStudentEnrollments,
   oneRosterCsvTableHeaders,
   oneRosterManifestRows,
@@ -18,15 +22,20 @@ import {
   parseOneRosterCsvPackageEntries,
   parseOneRosterCsvZip,
   writeCsvBytes,
+  writeOneRosterCsvFullPackageEntriesFromRecords,
+  writeOneRosterCsvFullPackageZipFromRecords,
   writeOneRosterCsvFullZip,
   writeOneRosterCsvGradebookZip,
   writeOneRosterCsvPackageZip,
+  writeOneRosterCsvPackageZipFromEntries,
+  writeOneRosterCsvPackageZipFromFiles,
   writeOneRosterCsvResourcesZip,
   writeOneRosterCsvRosteringZip,
   type CsvDocument,
   type CsvParseDiagnostic,
   type CsvWriteDiagnostic,
   type OneRosterCsvFullPackage,
+  type OneRosterCsvFullPackageRecordCollections,
   type OneRosterCsvGradebookPackage,
   type OneRosterCsvPackage,
   type OneRosterCsvPackageDiagnostic,
@@ -35,6 +44,7 @@ import {
   type OneRosterCsvResourcesPackage,
   type OneRosterCsvRosteringPackage,
   type OneRosterCsvValidatedFullPackage,
+  type OneRosterManifestFileModes,
   type Result,
   type ZipEntry,
 } from "../src/index.js";
@@ -144,6 +154,27 @@ export function writeRawPackageExample(
   return writeOneRosterCsvPackageZip(packageValue);
 }
 
+export function manifestModesExample(): OneRosterManifestFileModes {
+  return createOneRosterManifestFileModes(["users.csv"], {
+    "users.csv": "delta",
+  });
+}
+
+export function writeDirectEntriesExample(
+  entries: readonly ZipEntry[],
+): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
+  return writeOneRosterCsvPackageZipFromEntries(entries);
+}
+
+export function writeDirectFilesExample(): Result<
+  Uint8Array,
+  readonly OneRosterCsvPackageWriteDiagnostic[]
+> {
+  return writeOneRosterCsvPackageZipFromFiles({
+    "manifest.csv": "propertyName,value\nmanifest.version,1.0\noneroster.version,1.2\n",
+  });
+}
+
 export function writeRosteringExample(
   packageValue: OneRosterCsvRosteringPackage,
 ): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
@@ -166,6 +197,20 @@ export function writeFullExample(
   packageValue: OneRosterCsvFullPackage,
 ): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
   return writeOneRosterCsvFullZip(packageValue);
+}
+
+export function writeFullRecordsExample(
+  records: OneRosterCsvFullPackageRecordCollections,
+): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
+  return writeOneRosterCsvFullPackageZipFromRecords(records);
+}
+
+export function writeFullRecordEntriesExample(
+  records: OneRosterCsvFullPackageRecordCollections,
+): Result<readonly ZipEntry[], readonly OneRosterCsvPackageWriteDiagnostic[]> {
+  return writeOneRosterCsvFullPackageEntriesFromRecords(records, {
+    fileModes: { "users.csv": "bulk" },
+  });
 }
 
 export function manifestRowsExample(
@@ -200,12 +245,27 @@ export function statusExample(packageValue: OneRosterCsvFullPackage): string {
   return `${getOneRosterRecordStatus(user)}:${getOneRosterUserStatus(user)}`;
 }
 
+export function userDisplayNameExample(packageValue: OneRosterCsvFullPackage): string {
+  const user = packageValue.rosteringPackage.users[0];
+
+  return user === undefined ? "missing" : formatOneRosterUserDisplayName(user);
+}
+
 export function relationshipHelperExample(packageValue: OneRosterCsvValidatedFullPackage): number {
   const lineItem = packageValue.fullPackage.gradebookPackage.lineItems[0];
+  const result = packageValue.fullPackage.gradebookPackage.results[0];
   const scoreScaleCount =
     lineItem === undefined ? 0 : getOneRosterLineItemScoreScales(packageValue, lineItem).length;
+  const firstResultScoreScale =
+    result === undefined ? null : getFirstActiveOneRosterResultScoreScale(packageValue, result);
+  const resultScoreScales = getResultScoreScaleSourcedIdsByResultSourcedId(packageValue);
 
-  return [...iterateResolvedStudentEnrollments(packageValue)].length + scoreScaleCount;
+  return (
+    [...iterateResolvedStudentEnrollments(packageValue)].length +
+    scoreScaleCount +
+    resultScoreScales.size +
+    (firstResultScoreScale === null ? 0 : 1)
+  );
 }
 
 export function diagnosticLocationExample(

@@ -7,7 +7,9 @@ import {
   type CsvWriteOptions,
 } from "./csv-write.js";
 import {
+  isOneRosterCsvFileName,
   oneRosterCsvDataFileNames,
+  oneRosterCsvFileNames,
   type OneRosterCsvDataFileName,
   type OneRosterCsvFileName,
 } from "./one-roster-csv-file.js";
@@ -20,7 +22,12 @@ import {
 import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
 import type { OneRosterCsvTable } from "./one-roster-csv-table.js";
 import { err, ok, type Result } from "./result.js";
-import type { ZipEntry } from "./zip.js";
+import {
+  describeRootZipEntryPathFailure,
+  validateRootZipEntryPath,
+  type RootZipEntryPathFailure,
+  type ZipEntry,
+} from "./zip.js";
 
 /** Options shared by OneRoster CSV package writers. */
 export type OneRosterCsvWriteOptions = CsvWriteOptions;
@@ -34,6 +41,13 @@ export type OneRosterCsvPackageWriteDiagnosticCode =
   | "write.row_width_mismatch"
   | "write.table_mode_mismatch"
   | "write.unexpected_table"
+  | "write.zip_entry_absolute_path"
+  | "write.zip_entry_directory"
+  | "write.zip_entry_duplicate_name"
+  | "write.zip_entry_empty_name"
+  | "write.zip_entry_nested_path"
+  | "write.zip_entry_path_traversal"
+  | "write.zip_unknown_file"
   | "write.zip_failed";
 
 /** Expected OneRoster CSV package write failure with safe location context. */
@@ -67,6 +81,8 @@ type PackageWriteDiagnosticInput = {
   readonly expected?: string | number | undefined;
   readonly actual?: string | number | undefined;
 };
+
+const textEncoder = new TextEncoder();
 
 /** Write a normalized raw OneRoster CSV package into root-level ZIP entries. */
 export function writeOneRosterCsvPackageEntries(
@@ -104,19 +120,71 @@ export function writeOneRosterCsvPackageZip(
   return writeZipEntries(entries.value);
 }
 
+/** Options for writing prepared package tables into entries or ZIP bytes. */
+export type OneRosterCsvWritablePackageInput = {
+  readonly source?: OneRosterManifestSource | undefined;
+  readonly fileModes?:
+    | Partial<Record<OneRosterCsvDataFileName, Exclude<OneRosterManifestFileMode, "absent">>>
+    | undefined;
+};
+
+/**
+ * Write caller-supplied root-level OneRoster CSV package entries directly into ZIP bytes.
+ * This validates package-owned ZIP entry rules but does not parse CSV or validate manifest
+ * consistency.
+ */
+export function writeOneRosterCsvPackageZipFromEntries(
+  entries: readonly ZipEntry[],
+): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
+  const orderedEntries = validateDirectPackageEntries(entries);
+
+  if (orderedEntries._tag === "err") {
+    return orderedEntries;
+  }
+
+  return writeZipEntries(orderedEntries.value);
+}
+
+/**
+ * Write caller-supplied root-level OneRoster CSV package files directly into ZIP bytes.
+ * String values are encoded as UTF-8 and byte values are written unchanged.
+ */
+export function writeOneRosterCsvPackageZipFromFiles(
+  files: Readonly<Record<string, string | Uint8Array>>,
+): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
+  const entries: ZipEntry[] = [];
+
+  for (const [path, value] of Object.entries(files)) {
+    entries.push({
+      path,
+      bytes: typeof value === "string" ? textEncoder.encode(value) : value,
+    });
+  }
+
+  return writeOneRosterCsvPackageZipFromEntries(entries);
+}
+
+/** Write prepared data tables and manifest metadata into root-level ZIP entries. */
+export function writeWritablePackageEntries(
+  tables: readonly OneRosterCsvWritableDataTable[],
+  input: OneRosterCsvWritablePackageInput = {},
+  options: OneRosterCsvWriteOptions = {},
+): Result<readonly ZipEntry[], readonly OneRosterCsvPackageWriteDiagnostic[]> {
+  const fileModes = buildManifestFileModesFromTables(tables, input.fileModes);
+
+  return writeOneRosterCsvPackageEntriesFromTables(
+    { fileModes, source: input.source, tables },
+    options,
+  );
+}
+
 /** Write prepared data tables and manifest metadata into a ZIP archive. */
 export function writeWritablePackageZip(
   tables: readonly OneRosterCsvWritableDataTable[],
-  source: OneRosterManifestSource | undefined,
+  input: OneRosterCsvWritablePackageInput = {},
   options: OneRosterCsvWriteOptions = {},
 ): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
-  const fileModes = createAbsentManifestFileModes();
-
-  for (const table of tables) {
-    fileModes[table.fileName] = table.manifestMode;
-  }
-
-  const entries = writeOneRosterCsvPackageEntriesFromTables({ fileModes, source, tables }, options);
+  const entries = writeWritablePackageEntries(tables, input, options);
 
   if (entries._tag === "err") {
     return entries;
@@ -201,6 +269,38 @@ export function writeZipEntries(
   }
 }
 
+/** Build complete manifest file modes from supplied data files and explicit overrides. */
+export function createOneRosterManifestFileModes(
+  presentFiles: readonly OneRosterCsvDataFileName[],
+  overrides: Partial<Record<OneRosterCsvDataFileName, OneRosterManifestFileMode>> = {},
+): OneRosterManifestFileModes {
+  const fileModes = createAbsentManifestFileModes();
+
+  for (const fileName of presentFiles) {
+    fileModes[fileName] = "bulk";
+  }
+
+  applyManifestFileModeOverrides(fileModes, overrides);
+
+  return fileModes;
+}
+
+/** Build manifest file modes from writable tables plus optional explicit overrides. */
+export function buildManifestFileModesFromTables(
+  tables: readonly OneRosterCsvWritableDataTable[],
+  overrides: OneRosterCsvWritablePackageInput["fileModes"] = {},
+): OneRosterManifestFileModes {
+  const fileModes = createAbsentManifestFileModes();
+
+  for (const table of tables) {
+    fileModes[table.fileName] = table.manifestMode;
+  }
+
+  applyManifestFileModeOverrides(fileModes, overrides);
+
+  return fileModes;
+}
+
 /** Create an absent manifest mode table for every OneRoster CSV data file. */
 export function createAbsentManifestFileModes(): Record<
   OneRosterCsvDataFileName,
@@ -211,6 +311,116 @@ export function createAbsentManifestFileModes(): Record<
   return Object.fromEntries(
     oneRosterCsvDataFileNames.map((fileName) => [fileName, "absent" as const]),
   ) as Record<OneRosterCsvDataFileName, OneRosterManifestFileMode>;
+}
+
+function applyManifestFileModeOverrides(
+  fileModes: Record<OneRosterCsvDataFileName, OneRosterManifestFileMode>,
+  overrides: Partial<Record<OneRosterCsvDataFileName, OneRosterManifestFileMode>>,
+): void {
+  for (const fileName of oneRosterCsvDataFileNames) {
+    const override = overrides[fileName];
+
+    if (override !== undefined) {
+      fileModes[fileName] = override;
+    }
+  }
+}
+
+function validateDirectPackageEntries(
+  entries: readonly ZipEntry[],
+): Result<readonly ZipEntry[], readonly OneRosterCsvPackageWriteDiagnostic[]> {
+  const diagnostics: OneRosterCsvPackageWriteDiagnostic[] = [];
+  const entriesByPath = new Map<OneRosterCsvFileName, ZipEntry>();
+
+  for (const entry of entries) {
+    const path = validateRootZipEntryPath(entry.path);
+
+    if (path._tag === "err") {
+      diagnostics.push(packageWriteDiagnosticFromRootZipEntryPathFailure(path.error, entry.path));
+      continue;
+    }
+
+    if (!isOneRosterCsvFileName(path.value)) {
+      diagnostics.push(
+        packageWriteDiagnostic({
+          code: "write.zip_unknown_file",
+          message: "OneRoster CSV package writer received a file outside the CSV 1.2 catalog.",
+          actual: path.value,
+        }),
+      );
+      continue;
+    }
+
+    if (entriesByPath.has(path.value)) {
+      diagnostics.push(
+        packageWriteDiagnostic({
+          code: "write.zip_entry_duplicate_name",
+          message: "OneRoster CSV package writer received duplicate file names.",
+          fileName: path.value,
+        }),
+      );
+      continue;
+    }
+
+    entriesByPath.set(path.value, { path: path.value, bytes: entry.bytes });
+  }
+
+  if (diagnostics.length > 0) {
+    return err(diagnostics);
+  }
+
+  const orderedEntries: ZipEntry[] = [];
+
+  for (const fileName of oneRosterCsvFileNames) {
+    const entry = entriesByPath.get(fileName);
+
+    if (entry !== undefined) {
+      orderedEntries.push(entry);
+    }
+  }
+
+  return ok(orderedEntries);
+}
+
+function packageWriteDiagnosticFromRootZipEntryPathFailure(
+  failure: RootZipEntryPathFailure,
+  entryName: string,
+): OneRosterCsvPackageWriteDiagnostic {
+  const description = describeRootZipEntryPathFailure(failure, entryName, "package.write");
+
+  return packageWriteDiagnostic({
+    code: packageWriteDiagnosticCodeForRootZipEntryPathFailure(failure),
+    message: description.message,
+    ...(description.path !== undefined ? { actual: description.path } : {}),
+  });
+}
+
+function packageWriteDiagnosticCodeForRootZipEntryPathFailure(
+  failure: RootZipEntryPathFailure,
+): Extract<
+  OneRosterCsvPackageWriteDiagnosticCode,
+  | "write.zip_entry_empty_name"
+  | "write.zip_entry_directory"
+  | "write.zip_entry_absolute_path"
+  | "write.zip_entry_path_traversal"
+  | "write.zip_entry_nested_path"
+> {
+  switch (failure) {
+    case "empty_name":
+      return "write.zip_entry_empty_name";
+    case "directory":
+      return "write.zip_entry_directory";
+    case "absolute_path":
+      return "write.zip_entry_absolute_path";
+    case "path_traversal":
+      return "write.zip_entry_path_traversal";
+    case "nested_path":
+      return "write.zip_entry_nested_path";
+    default: {
+      const exhaustiveFailure: never = failure;
+      throw new Error(`Unhandled root ZIP entry path failure: ${String(exhaustiveFailure)}.`);
+    }
+  }
 }
 
 /** Build a OneRoster package writer diagnostic with only defined optional fields. */

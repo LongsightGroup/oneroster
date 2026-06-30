@@ -78,5 +78,5 @@ export function writeOneRosterCsvLayeredPackageZip(
     return err(diagnostics);
   }
 
-  return writeWritablePackageZip(tables, rosteringPackage.manifest.source, options);
+  return writeWritablePackageZip(tables, { source: rosteringPackage.manifest.source }, options);
 }

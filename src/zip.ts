@@ -60,6 +60,107 @@ type ZipDiagnosticInput = {
   readonly actual?: number;
 };
 
+/** Reason a ZIP entry path failed root-level validation. */
+export type RootZipEntryPathFailure =
+  | "empty_name"
+  | "directory"
+  | "absolute_path"
+  | "path_traversal"
+  | "nested_path";
+
+/** Audience used when formatting root ZIP entry path failure messages. */
+export type RootZipEntryPathFailureContext = "zip.read" | "package.write";
+
+/** Safe diagnostic fields for a root ZIP entry path validation failure. */
+export type RootZipEntryPathFailureDescription = {
+  readonly message: string;
+  readonly path?: string;
+};
+
+/** Validate that a ZIP entry path is a safe root-level file name. */
+export function validateRootZipEntryPath(
+  entryName: string,
+): Result<string, RootZipEntryPathFailure> {
+  if (entryName === "") {
+    return err("empty_name");
+  }
+
+  if (entryName.endsWith("/") || entryName.endsWith("\\")) {
+    return err("directory");
+  }
+
+  if (entryName.startsWith("/") || entryName.startsWith("\\") || hasWindowsDrivePrefix(entryName)) {
+    return err("absolute_path");
+  }
+
+  const pathSegments = entryName.split(/[\\/]/u);
+
+  if (pathSegments.includes("..")) {
+    return err("path_traversal");
+  }
+
+  if (pathSegments.length > 1) {
+    return err("nested_path");
+  }
+
+  return ok(entryName);
+}
+
+/** Format a root ZIP entry path failure for read or package-write diagnostics. */
+export function describeRootZipEntryPathFailure(
+  failure: RootZipEntryPathFailure,
+  entryName: string,
+  context: RootZipEntryPathFailureContext,
+): RootZipEntryPathFailureDescription {
+  const path = failure === "empty_name" ? undefined : entryName;
+
+  switch (failure) {
+    case "empty_name":
+      return {
+        message:
+          context === "zip.read"
+            ? "ZIP entry has an empty file name."
+            : "OneRoster CSV package writer received an empty file name.",
+      };
+    case "directory":
+      return {
+        message:
+          context === "zip.read"
+            ? "ZIP archive contains a directory entry."
+            : "OneRoster CSV package writer received a directory entry.",
+        ...(path !== undefined ? { path } : {}),
+      };
+    case "absolute_path":
+      return {
+        message:
+          context === "zip.read"
+            ? "ZIP entry uses an absolute path."
+            : "OneRoster CSV package writer received an absolute file path.",
+        ...(path !== undefined ? { path } : {}),
+      };
+    case "path_traversal":
+      return {
+        message:
+          context === "zip.read"
+            ? "ZIP entry contains a path traversal segment."
+            : "OneRoster CSV package writer received a path traversal segment.",
+        ...(path !== undefined ? { path } : {}),
+      };
+    case "nested_path":
+      return {
+        message:
+          context === "zip.read"
+            ? "OneRoster ZIP entries must be files at the archive root."
+            : "OneRoster CSV package ZIP entries must be files at the archive root.",
+        ...(path !== undefined ? { path } : {}),
+      };
+    default: {
+      const exhaustiveFailure: RootZipEntryPathFailure = failure;
+      throw new Error(`Unhandled root ZIP entry path failure: ${String(exhaustiveFailure)}.`);
+    }
+  }
+}
+
 /** Default ZIP limits chosen for roster CSV packages, not arbitrary archival workloads. */
 export const defaultZipReadLimits: ResolvedZipReadLimits = {
   maxCompressedBytes: 50 * 1024 * 1024,
@@ -175,58 +276,54 @@ function resolveZipReadLimits(limits?: ZipReadLimits): ResolvedZipReadLimits {
 }
 
 function parseRootZipEntryPath(entryName: string): Result<string, ZipDiagnostic> {
-  if (entryName === "") {
-    return err(
-      zipDiagnostic({
-        code: "zip.entry_empty_name",
-        message: "ZIP entry has an empty file name.",
-      }),
-    );
+  const validatedPath = validateRootZipEntryPath(entryName);
+
+  if (validatedPath._tag === "err") {
+    return err(rootZipEntryPathDiagnostic(validatedPath.error, entryName));
   }
 
-  if (entryName.endsWith("/") || entryName.endsWith("\\")) {
-    return err(
-      zipDiagnostic({
-        code: "zip.entry_directory",
-        message: "ZIP archive contains a directory entry.",
-        entryName,
-      }),
-    );
+  return validatedPath;
+}
+
+function rootZipEntryPathDiagnostic(
+  failure: RootZipEntryPathFailure,
+  entryName: string,
+): ZipDiagnostic {
+  const description = describeRootZipEntryPathFailure(failure, entryName, "zip.read");
+
+  return zipDiagnostic({
+    code: zipDiagnosticCodeForRootZipEntryPathFailure(failure),
+    message: description.message,
+    ...(description.path !== undefined ? { entryName: description.path } : {}),
+  });
+}
+
+function zipDiagnosticCodeForRootZipEntryPathFailure(
+  failure: RootZipEntryPathFailure,
+): Extract<
+  ZipDiagnosticCode,
+  | "zip.entry_empty_name"
+  | "zip.entry_directory"
+  | "zip.entry_absolute_path"
+  | "zip.entry_path_traversal"
+  | "zip.entry_nested_path"
+> {
+  switch (failure) {
+    case "empty_name":
+      return "zip.entry_empty_name";
+    case "directory":
+      return "zip.entry_directory";
+    case "absolute_path":
+      return "zip.entry_absolute_path";
+    case "path_traversal":
+      return "zip.entry_path_traversal";
+    case "nested_path":
+      return "zip.entry_nested_path";
+    default: {
+      const exhaustiveFailure: RootZipEntryPathFailure = failure;
+      throw new Error(`Unhandled root ZIP entry path failure: ${String(exhaustiveFailure)}.`);
+    }
   }
-
-  if (entryName.startsWith("/") || entryName.startsWith("\\") || hasWindowsDrivePrefix(entryName)) {
-    return err(
-      zipDiagnostic({
-        code: "zip.entry_absolute_path",
-        message: "ZIP entry uses an absolute path.",
-        entryName,
-      }),
-    );
-  }
-
-  const pathSegments = entryName.split(/[\\/]/u);
-
-  if (pathSegments.includes("..")) {
-    return err(
-      zipDiagnostic({
-        code: "zip.entry_path_traversal",
-        message: "ZIP entry contains a path traversal segment.",
-        entryName,
-      }),
-    );
-  }
-
-  if (pathSegments.length > 1) {
-    return err(
-      zipDiagnostic({
-        code: "zip.entry_nested_path",
-        message: "OneRoster ZIP entries must be files at the archive root.",
-        entryName,
-      }),
-    );
-  }
-
-  return ok(entryName);
 }
 
 function hasWindowsDrivePrefix(path: string): boolean {
