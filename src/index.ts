@@ -8,6 +8,13 @@ export type {
   CsvParseDiagnosticCode,
   CsvParseOptions,
 } from "./csv.js";
+export { writeCsv, writeCsvBytes } from "./csv-write.js";
+export type {
+  CsvWriteDiagnostic,
+  CsvWriteDiagnosticCode,
+  CsvWriteLineEnding,
+  CsvWriteOptions,
+} from "./csv-write.js";
 export {
   isOneRosterCsvDataFileName,
   isOneRosterCsvFileName,
@@ -16,6 +23,10 @@ export {
 } from "./one-roster-csv-file.js";
 export type { OneRosterCsvDataFileName, OneRosterCsvFileName } from "./one-roster-csv-file.js";
 export { parseOneRosterCsvPackageEntries, parseOneRosterCsvZip } from "./one-roster-csv-package.js";
+export {
+  writeOneRosterCsvPackageEntries,
+  writeOneRosterCsvPackageZip,
+} from "./one-roster-csv-package-writer.js";
 export type {
   OneRosterCsvPackage,
   OneRosterCsvPackageDiagnostic,
@@ -29,6 +40,11 @@ export type {
   OneRosterManifestSource,
   OneRosterSuppliedFileMode,
 } from "./one-roster-csv-package.js";
+export type {
+  OneRosterCsvPackageWriteDiagnostic,
+  OneRosterCsvPackageWriteDiagnosticCode,
+  OneRosterCsvWriteOptions,
+} from "./one-roster-csv-package-writer.js";
 export {
   parseOneRosterBooleanToken,
   parseOneRosterDate,
@@ -50,6 +66,7 @@ export {
   parseOneRosterCsvGradebookPackage,
   parseOneRosterCsvGradebookZip,
 } from "./one-roster-csv-gradebook.js";
+export { writeOneRosterCsvGradebookZip } from "./one-roster-csv-gradebook-writer.js";
 export {
   parseAndValidateOneRosterCsvGradebookZip,
   validateOneRosterCsvGradebookPackage,
@@ -78,6 +95,7 @@ export {
   parseOneRosterCsvResourcesPackage,
   parseOneRosterCsvResourcesZip,
 } from "./one-roster-csv-resources.js";
+export { writeOneRosterCsvResourcesZip } from "./one-roster-csv-resources-writer.js";
 export {
   parseAndValidateOneRosterCsvResourcesZip,
   validateOneRosterCsvResourcesPackage,
@@ -99,6 +117,7 @@ export type {
   OneRosterCsvValidatedResourcesPackage,
 } from "./one-roster-csv-resources-validation.js";
 export { parseOneRosterCsvFullPackage, parseOneRosterCsvFullZip } from "./one-roster-csv-full.js";
+export { writeOneRosterCsvFullZip } from "./one-roster-csv-full-writer.js";
 export {
   parseAndValidateOneRosterCsvFullZip,
   validateOneRosterCsvFullPackage,
@@ -112,6 +131,7 @@ export {
   parseOneRosterCsvRosteringPackage,
   parseOneRosterCsvRosteringZip,
 } from "./one-roster-csv-rostering.js";
+export { writeOneRosterCsvRosteringZip } from "./one-roster-csv-rostering-writer.js";
 export {
   parseAndValidateOneRosterCsvRosteringZip,
   validateOneRosterCsvRosteringPackage,

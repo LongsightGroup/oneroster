@@ -11,6 +11,7 @@ import {
   parseYearField,
 } from "./one-roster-csv-record-field-parsers.js";
 import { parseCommonRecordFields } from "./one-roster-csv-record-lifecycle.js";
+import { commonRecordCells, listCell, optionalCell } from "./one-roster-csv-record-cell-write.js";
 import { parseOneRosterCsvRecordRow } from "./one-roster-csv-record-row.js";
 import {
   academicSessionTypeValues,
@@ -382,4 +383,153 @@ export function parseUserProfileRecord(
       password: fields.password,
     }),
   );
+}
+
+/** Serialize one academicSessions.csv record into CSV cells. */
+export function serializeAcademicSessionRecord(
+  record: OneRosterAcademicSessionRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.title,
+    record.type,
+    record.startDate,
+    record.endDate,
+    optionalCell(record.parentSourcedId),
+    record.schoolYear,
+  ];
+}
+
+/** Serialize one orgs.csv record into CSV cells. */
+export function serializeOrgRecord(record: OneRosterOrgRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.name,
+    record.type,
+    optionalCell(record.identifier),
+    optionalCell(record.parentSourcedId),
+  ];
+}
+
+/** Serialize one courses.csv record into CSV cells. */
+export function serializeCourseRecord(record: OneRosterCourseRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    optionalCell(record.schoolYearSourcedId),
+    record.title,
+    optionalCell(record.courseCode),
+    listCell(record.grades),
+    record.orgSourcedId,
+    listCell(record.subjects),
+    listCell(record.subjectCodes),
+  ];
+}
+
+/** Serialize one classes.csv record into CSV cells. */
+export function serializeClassRecord(record: OneRosterClassRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.title,
+    listCell(record.grades),
+    record.courseSourcedId,
+    optionalCell(record.classCode),
+    record.classType,
+    optionalCell(record.location),
+    record.schoolSourcedId,
+    listCell(record.termSourcedIds),
+    listCell(record.subjects),
+    listCell(record.subjectCodes),
+    listCell(record.periods),
+  ];
+}
+
+/** Serialize one users.csv record into CSV cells. */
+export function serializeUserRecord(record: OneRosterUserRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    optionalCell(record.enabledUser),
+    record.username,
+    listCell(record.userIds),
+    record.givenName,
+    record.familyName,
+    optionalCell(record.middleName),
+    optionalCell(record.identifier),
+    optionalCell(record.email),
+    optionalCell(record.sms),
+    optionalCell(record.phone),
+    listCell(record.agentSourcedIds),
+    listCell(record.grades),
+    optionalCell(record.password),
+    optionalCell(record.userMasterIdentifier),
+    optionalCell(record.preferredGivenName),
+    optionalCell(record.preferredMiddleName),
+    optionalCell(record.preferredFamilyName),
+    optionalCell(record.primaryOrgSourcedId),
+    optionalCell(record.pronouns),
+  ];
+}
+
+/** Serialize one roles.csv record into CSV cells. */
+export function serializeRoleRecord(record: OneRosterRoleRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.userSourcedId,
+    record.roleType,
+    record.role,
+    optionalCell(record.beginDate),
+    optionalCell(record.endDate),
+    record.orgSourcedId,
+    optionalCell(record.userProfileSourcedId),
+  ];
+}
+
+/** Serialize one enrollments.csv record into CSV cells. */
+export function serializeEnrollmentRecord(record: OneRosterEnrollmentRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.classSourcedId,
+    record.schoolSourcedId,
+    record.userSourcedId,
+    record.role,
+    optionalCell(record.primary),
+    optionalCell(record.beginDate),
+    optionalCell(record.endDate),
+  ];
+}
+
+/** Serialize one demographics.csv record into CSV cells. */
+export function serializeDemographicsRecord(
+  record: OneRosterDemographicsRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    optionalCell(record.birthDate),
+    optionalCell(record.sex),
+    optionalCell(record.americanIndianOrAlaskaNative),
+    optionalCell(record.asian),
+    optionalCell(record.blackOrAfricanAmerican),
+    optionalCell(record.nativeHawaiianOrOtherPacificIslander),
+    optionalCell(record.white),
+    optionalCell(record.demographicRaceTwoOrMoreRaces),
+    optionalCell(record.hispanicOrLatinoEthnicity),
+    optionalCell(record.countryOfBirthCode),
+    optionalCell(record.stateOfBirthAbbreviation),
+    optionalCell(record.cityOfBirth),
+    optionalCell(record.publicSchoolResidenceStatus),
+  ];
+}
+
+/** Serialize one userProfiles.csv record into CSV cells. */
+export function serializeUserProfileRecord(record: OneRosterUserProfileRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.userSourcedId,
+    record.profileType,
+    record.vendorId,
+    optionalCell(record.applicationId),
+    optionalCell(record.description),
+    record.credentialType,
+    record.username,
+    optionalCell(record.password),
+  ];
 }

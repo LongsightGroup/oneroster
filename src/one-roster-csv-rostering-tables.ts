@@ -3,6 +3,7 @@ import type { OneRosterManifest } from "./one-roster-csv-manifest.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import {
   defineProfileTables,
+  defineOneRosterCsvRecordSerializer,
   type OneRosterCsvRecordSet,
   type OneRosterCsvRecordTableDefinition,
 } from "./one-roster-csv-record-tables.js";
@@ -16,6 +17,15 @@ import {
   parseRoleRecord,
   parseUserProfileRecord,
   parseUserRecord,
+  serializeAcademicSessionRecord,
+  serializeClassRecord,
+  serializeCourseRecord,
+  serializeDemographicsRecord,
+  serializeEnrollmentRecord,
+  serializeOrgRecord,
+  serializeRoleRecord,
+  serializeUserProfileRecord,
+  serializeUserRecord,
 } from "./one-roster-csv-rostering-record-engine.js";
 import {
   academicSessionHeaders,
@@ -42,6 +52,10 @@ import type {
   OneRosterUserProfileRecord,
   OneRosterUserRecord,
 } from "./one-roster-csv-rostering-types.js";
+import type {
+  OneRosterCsvPackageWriteDiagnostic,
+  OneRosterCsvWritableDataTable,
+} from "./one-roster-csv-package-writer.js";
 
 export type RosteringPackageRecords = Omit<OneRosterCsvRosteringPackage, "rawPackage" | "manifest">;
 
@@ -80,6 +94,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.academicSessions,
     getIndex: (indexes) => indexes.academicSessionsBySourcedId,
     parse: parseAcademicSessionRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeAcademicSessionRecord),
   },
   orgs: {
     fileName: "orgs.csv",
@@ -87,6 +102,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.orgs,
     getIndex: (indexes) => indexes.orgsBySourcedId,
     parse: parseOrgRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeOrgRecord),
   },
   courses: {
     fileName: "courses.csv",
@@ -94,6 +110,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.courses,
     getIndex: (indexes) => indexes.coursesBySourcedId,
     parse: parseCourseRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeCourseRecord),
   },
   classes: {
     fileName: "classes.csv",
@@ -101,6 +118,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.classes,
     getIndex: (indexes) => indexes.classesBySourcedId,
     parse: parseClassRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeClassRecord),
   },
   users: {
     fileName: "users.csv",
@@ -108,6 +126,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.users,
     getIndex: (indexes) => indexes.usersBySourcedId,
     parse: parseUserRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeUserRecord),
   },
   roles: {
     fileName: "roles.csv",
@@ -115,6 +134,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.roles,
     getIndex: (indexes) => indexes.rolesBySourcedId,
     parse: parseRoleRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeRoleRecord),
   },
   enrollments: {
     fileName: "enrollments.csv",
@@ -122,6 +142,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.enrollments,
     getIndex: (indexes) => indexes.enrollmentsBySourcedId,
     parse: parseEnrollmentRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeEnrollmentRecord),
   },
   demographics: {
     fileName: "demographics.csv",
@@ -129,6 +150,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.demographics,
     getIndex: (indexes) => indexes.demographicsBySourcedId,
     parse: parseDemographicsRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeDemographicsRecord),
   },
   userProfiles: {
     fileName: "userProfiles.csv",
@@ -136,6 +158,7 @@ const rosteringProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.userProfiles,
     getIndex: (indexes) => indexes.userProfilesBySourcedId,
     parse: parseUserProfileRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeUserProfileRecord),
   },
 });
 
@@ -190,6 +213,14 @@ export function buildRosteringReferenceIndexes(
   diagnostics: OneRosterCsvPackageDiagnostic[],
 ): OneRosterCsvRosteringReferenceIndexes {
   return rosteringProfileTables.buildReferenceIndexes(packageValue, diagnostics);
+}
+
+/** Write every registered rostering table into package-ready CSV tables. */
+export function writeRosteringPackageTables(
+  packageValue: OneRosterCsvRosteringPackage,
+  diagnostics: OneRosterCsvPackageWriteDiagnostic[],
+): readonly OneRosterCsvWritableDataTable[] {
+  return rosteringProfileTables.writePackageTables(packageValue, diagnostics);
 }
 
 export type { OneRosterManifest };

@@ -11,6 +11,7 @@ import {
   parseVocabularyField,
 } from "./one-roster-csv-record-field-parsers.js";
 import { parseCommonRecordFields } from "./one-roster-csv-record-lifecycle.js";
+import { commonRecordCells, listCell, optionalCell } from "./one-roster-csv-record-cell-write.js";
 import { parseOneRosterCsvRecordRow } from "./one-roster-csv-record-row.js";
 import {
   learningObjectiveSourceValues,
@@ -300,4 +301,108 @@ export function parseResultScoreScaleRecord(
       scoreScaleSourcedId: fields.scoreScaleSourcedId,
     }),
   );
+}
+
+/** Serialize one categories.csv record into CSV cells. */
+export function serializeCategoryRecord(record: OneRosterCategoryRecord): readonly string[] {
+  return [...commonRecordCells(record), record.title, optionalCell(record.weight)];
+}
+
+/** Serialize one lineItems.csv record into CSV cells. */
+export function serializeLineItemRecord(record: OneRosterLineItemRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.title,
+    optionalCell(record.description),
+    record.assignDate,
+    record.dueDate,
+    record.classSourcedId,
+    record.categorySourcedId,
+    record.academicSessionSourcedId,
+    optionalCell(record.resultValueMin),
+    optionalCell(record.resultValueMax),
+    record.schoolSourcedId,
+  ];
+}
+
+/** Serialize one results.csv record into CSV cells. */
+export function serializeResultRecord(record: OneRosterResultRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.lineItemSourcedId,
+    record.studentSourcedId,
+    record.scoreStatus,
+    optionalCell(record.score),
+    record.scoreDate,
+    optionalCell(record.comment),
+    optionalCell(record.textScore),
+    optionalCell(record.classSourcedId),
+    optionalCell(record.inProgress),
+    optionalCell(record.incomplete),
+    optionalCell(record.late),
+    optionalCell(record.missing),
+  ];
+}
+
+/** Serialize one scoreScales.csv record into CSV cells. */
+export function serializeScoreScaleRecord(record: OneRosterScoreScaleRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.title,
+    record.type,
+    record.orgSourcedId,
+    record.courseSourcedId,
+    record.classSourcedId,
+    listCell(record.scoreScaleValue),
+  ];
+}
+
+/** Serialize one lineItemLearningObjectiveIds.csv record into CSV cells. */
+export function serializeLineItemLearningObjectiveIdRecord(
+  record: OneRosterLineItemLearningObjectiveIdRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.lineItemSourcedId,
+    record.source,
+    record.learningObjectiveId,
+  ];
+}
+
+/** Serialize one lineItemScoreScales.csv record into CSV cells. */
+export function serializeLineItemScoreScaleRecord(
+  record: OneRosterLineItemScoreScaleRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    optionalCell(record.title),
+    record.lineItemSourcedId,
+    record.scoreScaleSourcedId,
+  ];
+}
+
+/** Serialize one resultLearningObjectiveIds.csv record into CSV cells. */
+export function serializeResultLearningObjectiveIdRecord(
+  record: OneRosterResultLearningObjectiveIdRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.resultSourcedId,
+    record.source,
+    record.learningObjectiveId,
+    optionalCell(record.score),
+    optionalCell(record.textScore),
+  ];
+}
+
+/** Serialize one resultScoreScales.csv record into CSV cells. */
+export function serializeResultScoreScaleRecord(
+  record: OneRosterResultScoreScaleRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    optionalCell(record.title),
+    record.resultSourcedId,
+    record.scoreScaleSourcedId,
+  ];
 }

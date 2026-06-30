@@ -2,6 +2,7 @@ import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import {
   defineProfileTables,
+  defineOneRosterCsvRecordSerializer,
   type OneRosterCsvRecordSet,
   type OneRosterCsvRecordTableDefinition,
 } from "./one-roster-csv-record-tables.js";
@@ -14,6 +15,14 @@ import {
   parseResultRecord,
   parseResultScoreScaleRecord,
   parseScoreScaleRecord,
+  serializeCategoryRecord,
+  serializeLineItemLearningObjectiveIdRecord,
+  serializeLineItemRecord,
+  serializeLineItemScoreScaleRecord,
+  serializeResultLearningObjectiveIdRecord,
+  serializeResultRecord,
+  serializeResultScoreScaleRecord,
+  serializeScoreScaleRecord,
 } from "./one-roster-csv-gradebook-record-engine.js";
 import {
   categoryHeaders,
@@ -38,6 +47,10 @@ import type {
   OneRosterResultScoreScaleRecord,
   OneRosterScoreScaleRecord,
 } from "./one-roster-csv-gradebook-types.js";
+import type {
+  OneRosterCsvPackageWriteDiagnostic,
+  OneRosterCsvWritableDataTable,
+} from "./one-roster-csv-package-writer.js";
 
 export type GradebookPackageRecords = Omit<OneRosterCsvGradebookPackage, "rosteringPackage">;
 
@@ -75,6 +88,7 @@ const gradebookProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.categories,
     getIndex: (indexes) => indexes.categoriesBySourcedId,
     parse: parseCategoryRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeCategoryRecord),
   },
   lineItems: {
     fileName: "lineItems.csv",
@@ -82,6 +96,7 @@ const gradebookProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.lineItems,
     getIndex: (indexes) => indexes.lineItemsBySourcedId,
     parse: parseLineItemRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeLineItemRecord),
   },
   results: {
     fileName: "results.csv",
@@ -89,6 +104,7 @@ const gradebookProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.results,
     getIndex: (indexes) => indexes.resultsBySourcedId,
     parse: parseResultRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeResultRecord),
   },
   scoreScales: {
     fileName: "scoreScales.csv",
@@ -96,6 +112,7 @@ const gradebookProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.scoreScales,
     getIndex: (indexes) => indexes.scoreScalesBySourcedId,
     parse: parseScoreScaleRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeScoreScaleRecord),
   },
   lineItemLearningObjectiveIds: {
     fileName: "lineItemLearningObjectiveIds.csv",
@@ -103,6 +120,7 @@ const gradebookProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.lineItemLearningObjectiveIds,
     getIndex: (indexes) => indexes.lineItemLearningObjectiveIdsBySourcedId,
     parse: parseLineItemLearningObjectiveIdRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeLineItemLearningObjectiveIdRecord),
   },
   lineItemScoreScales: {
     fileName: "lineItemScoreScales.csv",
@@ -110,6 +128,7 @@ const gradebookProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.lineItemScoreScales,
     getIndex: (indexes) => indexes.lineItemScoreScalesBySourcedId,
     parse: parseLineItemScoreScaleRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeLineItemScoreScaleRecord),
   },
   resultLearningObjectiveIds: {
     fileName: "resultLearningObjectiveIds.csv",
@@ -117,6 +136,7 @@ const gradebookProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.resultLearningObjectiveIds,
     getIndex: (indexes) => indexes.resultLearningObjectiveIdsBySourcedId,
     parse: parseResultLearningObjectiveIdRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeResultLearningObjectiveIdRecord),
   },
   resultScoreScales: {
     fileName: "resultScoreScales.csv",
@@ -124,6 +144,7 @@ const gradebookProfileTables = defineProfileTables<
     getRecords: (packageValue) => packageValue.resultScoreScales,
     getIndex: (indexes) => indexes.resultScoreScalesBySourcedId,
     parse: parseResultScoreScaleRecord,
+    serialize: defineOneRosterCsvRecordSerializer(serializeResultScoreScaleRecord),
   },
 });
 
@@ -158,4 +179,12 @@ export function buildGradebookReferenceIndexes(
   diagnostics: OneRosterCsvPackageDiagnostic[],
 ): OneRosterCsvGradebookReferenceIndexes {
   return gradebookProfileTables.buildReferenceIndexes(packageValue, diagnostics);
+}
+
+/** Write every registered gradebook table into package-ready CSV tables. */
+export function writeGradebookPackageTables(
+  packageValue: OneRosterCsvGradebookPackage,
+  diagnostics: OneRosterCsvPackageWriteDiagnostic[],
+): readonly OneRosterCsvWritableDataTable[] {
+  return gradebookProfileTables.writePackageTables(packageValue, diagnostics);
 }

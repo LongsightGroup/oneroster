@@ -7,6 +7,7 @@ import {
   parseVocabularyListField,
 } from "./one-roster-csv-record-field-parsers.js";
 import { parseCommonRecordFields } from "./one-roster-csv-record-lifecycle.js";
+import { commonRecordCells, listCell, optionalCell } from "./one-roster-csv-record-cell-write.js";
 import { parseOneRosterCsvRecordRow } from "./one-roster-csv-record-row.js";
 import { resourceImportanceValues, resourceRoleValues } from "./one-roster-csv-resources-schema.js";
 import type {
@@ -128,4 +129,54 @@ export function parseUserResourceRecord(
       resourceSourcedId: fields.resourceSourcedId,
     }),
   );
+}
+
+/** Serialize one resources.csv record into CSV cells. */
+export function serializeResourceRecord(record: OneRosterResourceRecord): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.vendorResourceId,
+    optionalCell(record.title),
+    listCell(record.roles),
+    optionalCell(record.importance),
+    optionalCell(record.vendorId),
+    optionalCell(record.applicationId),
+  ];
+}
+
+/** Serialize one classResources.csv record into CSV cells. */
+export function serializeClassResourceRecord(
+  record: OneRosterClassResourceRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    optionalCell(record.title),
+    record.classSourcedId,
+    record.resourceSourcedId,
+  ];
+}
+
+/** Serialize one courseResources.csv record into CSV cells. */
+export function serializeCourseResourceRecord(
+  record: OneRosterCourseResourceRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    optionalCell(record.title),
+    record.courseSourcedId,
+    record.resourceSourcedId,
+  ];
+}
+
+/** Serialize one userResources.csv record into CSV cells. */
+export function serializeUserResourceRecord(
+  record: OneRosterUserResourceRecord,
+): readonly string[] {
+  return [
+    ...commonRecordCells(record),
+    record.userSourcedId,
+    optionalCell(record.orgSourcedId),
+    optionalCell(record.classSourcedId),
+    record.resourceSourcedId,
+  ];
 }

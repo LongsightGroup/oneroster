@@ -4,6 +4,12 @@ import {
   type OneRosterCsvPackageOptions,
 } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
+import {
+  writeWritablePackageZip,
+  type OneRosterCsvPackageWriteDiagnostic,
+  type OneRosterCsvWritableDataTable,
+  type OneRosterCsvWriteOptions,
+} from "./one-roster-csv-package-writer.js";
 import { assembleOneRosterCsvRosteringPackage } from "./one-roster-csv-rostering-tables.js";
 import type { OneRosterCsvRosteringPackage } from "./one-roster-csv-rostering-types.js";
 import { err, ok, type Result } from "./result.js";
@@ -13,6 +19,11 @@ type LayeredProfileParser<TProfileRecords> = (
   rosteringPackage: OneRosterCsvRosteringPackage | undefined,
   diagnostics: OneRosterCsvPackageDiagnostic[],
 ) => TProfileRecords;
+
+type LayeredProfileWriter = (
+  rosteringPackage: OneRosterCsvRosteringPackage,
+  diagnostics: OneRosterCsvPackageWriteDiagnostic[],
+) => readonly OneRosterCsvWritableDataTable[];
 
 /** Parse a OneRoster CSV ZIP archive into rostering records plus profile record layers. */
 export function parseOneRosterCsvLayeredZip<TProfileRecords>(
@@ -52,4 +63,20 @@ export function parseOneRosterCsvLayeredPackage<TProfileRecords>(
     rosteringPackage,
     ...profileRecords,
   });
+}
+
+/** Write a typed OneRoster CSV package with rostering and profile tables into ZIP bytes. */
+export function writeOneRosterCsvLayeredPackageZip(
+  rosteringPackage: OneRosterCsvRosteringPackage,
+  writeProfileTables: LayeredProfileWriter,
+  options: OneRosterCsvWriteOptions = {},
+): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
+  const diagnostics: OneRosterCsvPackageWriteDiagnostic[] = [];
+  const tables = writeProfileTables(rosteringPackage, diagnostics);
+
+  if (diagnostics.length > 0) {
+    return err(diagnostics);
+  }
+
+  return writeWritablePackageZip(tables, rosteringPackage.manifest.source, options);
 }
