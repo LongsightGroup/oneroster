@@ -1,0 +1,21 @@
+dist/
+coverage/
+node_modules/
+*.tsbuildinfo
+
+# Private planning and downloaded standards material.
+PRD.md
+planning/
+notes/
+design/
+spec-documents/
+specs/
+.specs/
+.private/
+
+# Local environment and package-manager noise.
+.DS_Store
+.env
+.env.*
+npm-debug.log*
+
