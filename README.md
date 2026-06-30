@@ -53,17 +53,17 @@ The core package should remain portable across npm ESM, Workers, Hono, Deno cons
 
 ## CSV Support Status
 
-| Area                | Status                                                                                                                                  |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| ZIP/package intake  | Implemented for root-level OneRoster CSV 1.2 packages with strict `manifest.csv` reconciliation.                                        |
-| CSV parsing/writing | Implemented with owned RFC 4180-compatible parsing/serialization and OneRoster-specific diagnostics.                                    |
-| Rostering CSV       | Implemented for `academicSessions`, `orgs`, `courses`, `classes`, `users`, `roles`, `enrollments`, `demographics`, and `userProfiles`.  |
-| Gradebook CSV       | Implemented for categories, line items, results, score scales, and gradebook link tables.                                               |
-| Resources CSV       | Implemented for resources, class resources, course resources, and user resources.                                                       |
-| Semantic validation | Implemented for direct references, duplicate sourced IDs, selected full-package constraints, and safe diagnostics.                      |
-| CSV writing         | Implemented for raw packages and typed rostering, gradebook, resources, and full packages.                                              |
-| Helper APIs         | Implemented for canonical headers, manifest rows, record projection, statuses, diagnostic locations, and common resolved relationships. |
-| REST and OpenAPI    | Planned later; no REST runtime or generated SDK is part of the current package surface.                                                 |
+| Area                | Status                                                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ZIP/package intake  | Implemented for root-level OneRoster CSV 1.2 packages with strict `manifest.csv` reconciliation.                                                                  |
+| CSV parsing/writing | Implemented with owned RFC 4180-compatible parsing/serialization and OneRoster-specific diagnostics.                                                              |
+| Rostering CSV       | Implemented for `academicSessions`, `orgs`, `courses`, `classes`, `users`, `roles`, `enrollments`, `demographics`, and `userProfiles`.                            |
+| Gradebook CSV       | Implemented for categories, line items, results, score scales, and gradebook link tables.                                                                         |
+| Resources CSV       | Implemented for resources, class resources, course resources, and user resources.                                                                                 |
+| Semantic validation | Implemented for direct references, duplicate sourced IDs, selected full-package constraints, and safe diagnostics.                                                |
+| CSV writing         | Implemented for raw packages, trusted file maps/entries, typed record collections, and typed rostering, gradebook, resources, and full packages.                  |
+| Helper APIs         | Implemented for canonical headers, manifest modes/rows, record projection, user display names, statuses, diagnostic locations, and common resolved relationships. |
+| REST and OpenAPI    | Planned later; no REST runtime or generated SDK is part of the current package surface.                                                                           |
 
 ## CSV Usage
 
@@ -125,6 +125,27 @@ if (parsed._tag === "ok") {
 }
 ```
 
+Write trusted in-memory files directly to ZIP bytes, or generate a full package from typed records:
+
+```ts
+import {
+  createOneRosterManifestFileModes,
+  writeOneRosterCsvFullPackageZipFromRecords,
+  writeOneRosterCsvPackageZipFromFiles,
+} from "@longsightgroup/oneroster";
+
+const fileModes = createOneRosterManifestFileModes(files, {
+  "users.csv": "bulk",
+});
+
+const trustedZip = writeOneRosterCsvPackageZipFromFiles(files);
+const generatedZip = writeOneRosterCsvFullPackageZipFromRecords({
+  users,
+  orgs,
+  classes,
+});
+```
+
 Metadata extension columns are preserved as `metadata.*` record fields. Writers append metadata columns after spec-defined headers and sort metadata headers deterministically. Diagnostics use stable codes and safe structural context; they do not include raw row payloads such as usernames, passwords, comments, scores, or private sourced IDs.
 
 Common helper APIs expose the same canonical CSV binding metadata used internally:
@@ -132,7 +153,9 @@ Common helper APIs expose the same canonical CSV binding metadata used internall
 ```ts
 import {
   formatOneRosterDiagnosticLocation,
+  formatOneRosterUserDisplayName,
   getOneRosterLineItemScoreScales,
+  getResultScoreScaleSourcedIdsByResultSourcedId,
   iterateResolvedStudentEnrollments,
   oneRosterCsvTableHeaders,
   oneRosterManifestRows,
@@ -147,7 +170,9 @@ for (const enrollment of iterateResolvedStudentEnrollments(validated)) {
 }
 
 const lineItemScoreScales = getOneRosterLineItemScoreScales(validated, lineItem);
+const resultScoreScales = getResultScoreScaleSourcedIdsByResultSourcedId(validated);
 const userObject = oneRosterRecordToCsvObject("users.csv", user);
+const displayName = formatOneRosterUserDisplayName(user);
 const location = formatOneRosterDiagnosticLocation(diagnostic);
 ```
 

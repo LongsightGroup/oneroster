@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-06-30
+## [0.2.1]
+
+### Added
+
+- Manifest mode builder helper for deriving complete OneRoster CSV file modes from in-memory file maps
+- Direct ZIP writers for trusted root-level OneRoster CSV entries and file maps without a parse-then-write round trip
+- Record-based full-package writers for deterministic entries or ZIP bytes from typed OneRoster record collections
+- User display-name formatting helper with deterministic fallback ordering
+- Result score-scale projection helpers for first-active and result-to-score-scale lookup use cases
+
+## [0.2.0]
 
 ### Added
 
@@ -26,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split entries options from ZIP options so in-memory entry APIs do not expose irrelevant ZIP limits
 - Centralized metadata header validation across parsing, writing, and record projection
 
-## [0.1.0] - 2026-06-30
+## [0.1.0]
 
 First public release of `@longsightgroup/oneroster`.
 
