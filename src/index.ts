@@ -75,6 +75,30 @@ export type {
   OneRosterCsvValidatedGradebookPackage,
 } from "./one-roster-csv-gradebook-validation.js";
 export {
+  parseOneRosterCsvResourcesPackage,
+  parseOneRosterCsvResourcesZip,
+} from "./one-roster-csv-resources.js";
+export {
+  parseAndValidateOneRosterCsvResourcesZip,
+  validateOneRosterCsvResourcesPackage,
+} from "./one-roster-csv-resources-validation.js";
+export type {
+  OneRosterClassResourceRecord,
+  OneRosterCourseResourceRecord,
+  OneRosterCsvResourcesFileName,
+  OneRosterCsvResourcesPackage,
+  OneRosterCsvResourcesRecordBase,
+  OneRosterCsvResourcesReferenceIndexes,
+  OneRosterResourceImportance,
+  OneRosterResourceRecord,
+  OneRosterResourceRole,
+  OneRosterUserResourceRecord,
+} from "./one-roster-csv-resources.js";
+export type {
+  OneRosterCsvResourcesValidationOptions,
+  OneRosterCsvValidatedResourcesPackage,
+} from "./one-roster-csv-resources-validation.js";
+export {
   parseOneRosterCsvRosteringPackage,
   parseOneRosterCsvRosteringZip,
 } from "./one-roster-csv-rostering.js";

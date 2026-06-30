@@ -433,6 +433,67 @@ export function parseVocabularyField<TValue extends string>(
   return undefined;
 }
 
+export function parseVocabularyListField<TValue extends string>(
+  context: OneRosterCsvRecordRowContext,
+  field: string,
+  requiredness: OneRosterCsvFieldRequiredness,
+  allowedValues: readonly TValue[],
+  allowExtension: true,
+): ReadonlyArray<TValue | OneRosterExtensionVocabularyToken> | undefined;
+
+export function parseVocabularyListField<TValue extends string>(
+  context: OneRosterCsvRecordRowContext,
+  field: string,
+  requiredness: OneRosterCsvFieldRequiredness,
+  allowedValues: readonly TValue[],
+  allowExtension: false,
+): ReadonlyArray<TValue> | undefined;
+
+/** Parse a comma-delimited OneRoster vocabulary list field with optional ext:* support. */
+export function parseVocabularyListField<TValue extends string>(
+  context: OneRosterCsvRecordRowContext,
+  field: string,
+  requiredness: OneRosterCsvFieldRequiredness,
+  allowedValues: readonly TValue[],
+  allowExtension: boolean,
+): ReadonlyArray<TValue | OneRosterExtensionVocabularyToken> | undefined {
+  const values = parseStringListField(context, field, requiredness);
+
+  if (values === undefined) {
+    return undefined;
+  }
+
+  const vocabularyValues: Array<TValue | OneRosterExtensionVocabularyToken> = [];
+  let valid = true;
+
+  for (const value of values) {
+    if (isAllowedVocabularyValue(value, allowedValues)) {
+      vocabularyValues.push(value);
+      continue;
+    }
+
+    if (allowExtension && isExtensionVocabularyToken(value)) {
+      vocabularyValues.push(value);
+      continue;
+    }
+
+    valid = false;
+    context.diagnostics.push(
+      packageDiagnostic({
+        code: "row.invalid_enum",
+        message: "OneRoster vocabulary list item is not permitted for this field.",
+        fileName: context.table.fileName,
+        rowNumber: context.row.rowNumber,
+        field,
+        expected: formatVocabularyExpected(allowedValues, allowExtension),
+        actual: "invalid list item",
+      }),
+    );
+  }
+
+  return valid ? vocabularyValues : undefined;
+}
+
 /** Parse a required string field, preserving the original CSV cell text. */
 export function parseRequiredStringField(
   context: OneRosterCsvRecordRowContext,
