@@ -94,6 +94,35 @@ export type OneRosterCsvProfileTableRegistry<
   ): readonly OneRosterCsvWritableDataTable[];
 };
 
+/** Iterate registered profile tables in registry key order. */
+export function iterateProfileTableRecords<
+  TPackage,
+  TIndexes,
+  const TTables extends Record<
+    string,
+    OneRosterCsvRecordTableDefinition<TPackage, TIndexes, OneRosterCsvRecordBase>
+  >,
+>(
+  registry: OneRosterCsvProfileTableRegistry<TPackage, TIndexes, TTables>,
+  packageValue: TPackage,
+): ReadonlyArray<{
+  readonly key: keyof TTables & string;
+  readonly records: ReadonlyArray<OneRosterCsvRecordBase>;
+}> {
+  return (Object.keys(registry.tables) as (keyof TTables & string)[]).map((key) => {
+    const table = registry.tables[key];
+
+    if (table === undefined) {
+      throw new Error("Registered OneRoster CSV table key was missing from its registry.");
+    }
+
+    return {
+      key,
+      records: table.getRecords(packageValue),
+    };
+  });
+}
+
 /** Register profile tables keyed by package record property and `${key}BySourcedId` index keys. */
 export function defineProfileTables<
   TPackage,

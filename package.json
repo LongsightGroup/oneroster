@@ -1,6 +1,6 @@
 {
   "name": "@longsightgroup/oneroster",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Faithful OneRoster 1.2 for TypeScript — CSV package parsing and normalization today; REST bindings, gradebook, and resources to follow.",
   "keywords": [
     "1edtech",

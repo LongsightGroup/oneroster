@@ -30,6 +30,21 @@ import {
 const textEncoder = new TextEncoder();
 
 describe("OneRoster CSV public helper APIs", () => {
+  it("validates full package file maps without caller-created ZIP entries", () => {
+    const validated = expectValidatedFullOk(
+      oneRoster.parseAndValidateOneRosterCsvFullFiles(
+        {
+          "manifest.csv": manifestCsv({ modes: fullCsvModes("bulk") }),
+          ...validBulkFullGraphFiles("bulk"),
+        },
+        { referenceMode: "allRows" },
+      ),
+    );
+
+    expect(validated.fullPackage.rosteringPackage.users).toHaveLength(2);
+    expect(validated.resolvedIndexes.resultScoreScalesByResultSourcedId.size).toBe(1);
+  });
+
   it("validates already-extracted full package entries", () => {
     const entries = expectOk(oneRoster.readZipEntries(fullPackageZip("bulk")));
     const validated = expectValidatedFullOk(
@@ -399,6 +414,14 @@ describe("OneRoster CSV public helper APIs", () => {
       oneRoster.getOneRosterLineItemScoreScales(validated, lineItem, { includeInactive: true }),
     ).toHaveLength(1);
     expect(
+      oneRoster.getFirstOneRosterResultScoreScale(validatedResultScoreScale, result),
+    ).toBeNull();
+    expect(
+      oneRoster.getFirstOneRosterResultScoreScale(validatedResultScoreScale, result, {
+        includeInactive: true,
+      })?.scoreScale.sourcedId,
+    ).toBe("score-scale-1");
+    expect(
       oneRoster.getFirstActiveOneRosterResultScoreScale(validatedResultScoreScale, result),
     ).toBeNull();
     expect(
@@ -413,6 +436,54 @@ describe("OneRoster CSV public helper APIs", () => {
         })
         .get("result-1"),
     ).toBe("score-scale-1");
+  });
+
+  it("builds common typed records and lifecycles", () => {
+    const sourcedId = requiredGuid("user-builder");
+    const orgSourcedId = requiredGuid("org-builder");
+    const classSourcedId = requiredGuid("class-builder");
+    const enrollmentSourcedId = requiredGuid("enrollment-builder");
+    const dateLastModified = oneRoster.parseOneRosterDateTime(conformanceDateLastModified);
+
+    if (dateLastModified === undefined) {
+      throw new Error("Expected fixture dateLastModified to parse.");
+    }
+
+    const user = oneRoster.makeOneRosterUserRecord({
+      sourcedId,
+      username: "learner",
+      givenName: "Learner",
+      familyName: "Example",
+      primaryOrgSourcedId: orgSourcedId,
+      lifecycle: oneRoster.oneRosterDeltaDeleteLifecycle(dateLastModified),
+    });
+    const enrollment = oneRoster.makeOneRosterEnrollmentRecord({
+      sourcedId: enrollmentSourcedId,
+      classSourcedId,
+      schoolSourcedId: orgSourcedId,
+      userSourcedId: sourcedId,
+      role: "student",
+    });
+
+    expect(oneRoster.oneRosterBulkLifecycle()).toEqual({ mode: "bulk" });
+    expect(oneRoster.getOneRosterUserStatus(user)).toBe("inactive");
+    expect(enrollment.lifecycle).toEqual({ mode: "bulk" });
+    expect(enrollment.primary).toBeUndefined();
+  });
+
+  it("summarizes validated full package counts", () => {
+    const validated = validFullPackageWithInactiveResultScoreScale();
+    const summary = oneRoster.summarizeOneRosterCsvFullPackage(validated);
+
+    expect(summary.tables.users).toBe(2);
+    expect(summary.tables.orgs).toBe(2);
+    expect(summary.tables.enrollments).toBe(1);
+    expect(summary.tables.classes).toBe(1);
+    expect(summary.tables.resources).toBe(1);
+    expect(summary.tables.results).toBe(1);
+    expect(summary.layers.total).toBe(summary.rows.total);
+    expect(summary.rows.inactive).toBe(1);
+    expect(summary.users.active).toBe(2);
   });
 });
 
@@ -533,4 +604,14 @@ function recordBySourcedId<TRecord extends { readonly sourcedId: string }>(
   }
 
   return record;
+}
+
+function requiredGuid(value: string): oneRoster.OneRosterGuid {
+  const guid = oneRoster.parseOneRosterGuid(value);
+
+  if (guid === undefined) {
+    throw new Error(`Expected ${value} to parse as a OneRoster GUID.`);
+  }
+
+  return guid;
 }

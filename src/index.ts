@@ -159,10 +159,19 @@ export {
 } from "./one-roster-csv-full-writer.js";
 export {
   parseAndValidateOneRosterCsvFullEntries,
+  parseAndValidateOneRosterCsvFullFiles,
   parseAndValidateOneRosterCsvFullZip,
   validateOneRosterCsvFullPackage,
 } from "./one-roster-csv-full-validation.js";
+export { summarizeOneRosterCsvFullPackage } from "./one-roster-csv-full-summary.js";
 export {
+  makeOneRosterEnrollmentRecord,
+  makeOneRosterUserRecord,
+  oneRosterBulkLifecycle,
+  oneRosterDeltaDeleteLifecycle,
+} from "./one-roster-csv-record-builders.js";
+export {
+  getFirstOneRosterResultScoreScale,
   getFirstActiveOneRosterResultScoreScale,
   getOneRosterLineItemLearningObjectiveLinks,
   getOneRosterLineItemScoreScales,
@@ -183,6 +192,17 @@ export type {
   OneRosterCsvFullZipValidationOptions,
   OneRosterCsvValidatedFullPackage,
 } from "./one-roster-csv-full-validation.js";
+export type {
+  OneRosterCsvFullPackageLayerSummary,
+  OneRosterCsvFullPackageStatusSummary,
+  OneRosterCsvFullPackageSummary,
+  OneRosterCsvFullPackageTableSummary,
+} from "./one-roster-csv-full-summary.js";
+export type {
+  OneRosterEnrollmentRecordBuilderInput,
+  OneRosterRecordBuilderBaseInput,
+  OneRosterUserRecordBuilderInput,
+} from "./one-roster-csv-record-builders.js";
 export type {
   OneRosterCsvFullResolvedIndexInput,
   OneRosterCsvFullResolvedIndexes,

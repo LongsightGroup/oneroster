@@ -107,6 +107,21 @@ const result = parseAndValidateOneRosterCsvFullEntries(entries, {
 });
 ```
 
+Validate an in-memory file map without creating ZIP entries yourself:
+
+```ts
+import { parseAndValidateOneRosterCsvFullFiles } from "@longsightgroup/oneroster";
+
+const result = parseAndValidateOneRosterCsvFullFiles(
+  {
+    "manifest.csv": manifestCsvText,
+    "users.csv": usersCsvText,
+    "classes.csv": classesCsvBytes,
+  },
+  { referenceMode: "allRows" },
+);
+```
+
 Write a validated typed package back to normalized CSV ZIP bytes:
 
 ```ts
@@ -129,20 +144,36 @@ Write trusted in-memory files directly to ZIP bytes, or generate a full package 
 
 ```ts
 import {
-  createOneRosterManifestFileModes,
+  makeOneRosterEnrollmentRecord,
+  makeOneRosterUserRecord,
+  oneRosterBulkLifecycle,
+  oneRosterDeltaDeleteLifecycle,
   writeOneRosterCsvFullPackageZipFromRecords,
   writeOneRosterCsvPackageZipFromFiles,
 } from "@longsightgroup/oneroster";
 
-const fileModes = createOneRosterManifestFileModes(files, {
-  "users.csv": "bulk",
+const user = makeOneRosterUserRecord({
+  sourcedId: userSourcedId,
+  username: "learner-1",
+  givenName: "Learner",
+  familyName: "One",
+  primaryOrgSourcedId: schoolSourcedId,
+  lifecycle: oneRosterDeltaDeleteLifecycle(dateLastModified),
+});
+
+const enrollment = makeOneRosterEnrollmentRecord({
+  sourcedId: enrollmentSourcedId,
+  classSourcedId,
+  schoolSourcedId,
+  userSourcedId,
+  role: "student",
+  lifecycle: oneRosterBulkLifecycle(),
 });
 
 const trustedZip = writeOneRosterCsvPackageZipFromFiles(files);
 const generatedZip = writeOneRosterCsvFullPackageZipFromRecords({
-  users,
-  orgs,
-  classes,
+  users: [user],
+  enrollments: [enrollment],
 });
 ```
 
@@ -154,6 +185,8 @@ Common helper APIs expose the same canonical CSV binding metadata used internall
 import {
   formatOneRosterDiagnosticLocation,
   formatOneRosterUserDisplayName,
+  getFirstActiveOneRosterResultScoreScale,
+  getFirstOneRosterResultScoreScale,
   getOneRosterLineItemScoreScales,
   getResultScoreScaleSourcedIdsByResultSourcedId,
   iterateResolvedStudentEnrollments,
@@ -169,11 +202,32 @@ for (const enrollment of iterateResolvedStudentEnrollments(validated)) {
   console.log(enrollment.user.username, enrollment.classRecord.title);
 }
 
+const allMemberships = [...iterateResolvedStudentEnrollments(validated, { includeInactive: true })];
 const lineItemScoreScales = getOneRosterLineItemScoreScales(validated, lineItem);
+const activeResultScoreScale = getFirstActiveOneRosterResultScoreScale(validated, result);
+const firstResultScoreScale = getFirstOneRosterResultScoreScale(validated, result, {
+  includeInactive: true,
+});
 const resultScoreScales = getResultScoreScaleSourcedIdsByResultSourcedId(validated);
 const userObject = oneRosterRecordToCsvObject("users.csv", user);
 const displayName = formatOneRosterUserDisplayName(user);
 const location = formatOneRosterDiagnosticLocation(diagnostic);
+```
+
+Resolved relationship helpers filter inactive parent/link/target rows by default. Pass
+`{ includeInactive: true }` only on helpers whose names do not promise active-only results, such as
+`iterateResolvedStudentEnrollments`, `getOneRosterLineItemScoreScales`,
+`getFirstOneRosterResultScoreScale`, and `getResultScoreScaleSourcedIdsByResultSourcedId`.
+`getFirstActiveOneRosterResultScoreScale` is always active-only.
+
+For quick import telemetry, summarize a validated package:
+
+```ts
+import { summarizeOneRosterCsvFullPackage } from "@longsightgroup/oneroster";
+
+const summary = summarizeOneRosterCsvFullPackage(validated);
+
+console.log(summary.tables.users, summary.tables.enrollments, summary.rows.inactive);
 ```
 
 ## Scripts

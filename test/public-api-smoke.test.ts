@@ -8,13 +8,16 @@ import {
   parseCsvExample,
   parseEntriesExample,
   parseRawPackageExample,
+  recordBuilderExample,
   recordProjectionExample,
   resultNarrowingExample,
   relationshipHelperExample,
+  summaryExample,
   statusExample,
   tableHeaderExample,
   validateFullExample,
   validateFullEntriesExample,
+  validateFullFilesExample,
   validateGradebookExample,
   validateResourcesExample,
   validateRosteringExample,
@@ -25,6 +28,7 @@ import {
   writeResourcesExample,
   writeRosteringExample,
 } from "./public-api-usage.js";
+import { conformanceDateLastModified } from "./fixtures/conformance-lifecycle.js";
 import { expectFullOk } from "./fixtures/one-roster-csv-full-assertions.js";
 import { validBulkFullGraphZip } from "./fixtures/one-roster-csv-full-packages.js";
 import { expectGradebookOk } from "./fixtures/one-roster-csv-gradebook-assertions.js";
@@ -92,6 +96,7 @@ describe("public API smoke tests", () => {
     expect(validateFullEntriesExample(expectOk(oneRoster.readZipEntries(fullBytes)))._tag).toBe(
       "ok",
     );
+    expect(validateFullFilesExample({ "manifest.csv": manifestCsv() })._tag).toBe("ok");
 
     const rosteringPackage = expectRosteringOk(
       oneRoster.parseOneRosterCsvRosteringZip(rosteringBytes),
@@ -115,6 +120,7 @@ describe("public API smoke tests", () => {
     expect(recordProjectionExample(fullPackage)).toContain("user-agent");
     expect(statusExample(fullPackage)).toBe("active:active");
     expect(relationshipHelperExample(validatedFullPackage)).toBeGreaterThan(0);
+    expect(summaryExample(validatedFullPackage).tables.users).toBeGreaterThan(0);
     expect(
       diagnosticLocationExample({
         _tag: "OneRosterCsvPackageDiagnostic",
@@ -147,5 +153,31 @@ describe("public API smoke tests", () => {
       ),
     ).toBe("csv.field_line_break");
     expect(resultNarrowingExample(oneRoster.ok("value"))).toBe("value");
+
+    const dateLastModified = oneRoster.parseOneRosterDateTime(conformanceDateLastModified);
+    const userSourcedId = oneRoster.parseOneRosterGuid("builder-user");
+    const orgSourcedId = oneRoster.parseOneRosterGuid("builder-org");
+    const classSourcedId = oneRoster.parseOneRosterGuid("builder-class");
+    const enrollmentSourcedId = oneRoster.parseOneRosterGuid("builder-enrollment");
+
+    if (
+      dateLastModified === undefined ||
+      userSourcedId === undefined ||
+      orgSourcedId === undefined ||
+      classSourcedId === undefined ||
+      enrollmentSourcedId === undefined
+    ) {
+      throw new Error("Expected public API builder fixture values to parse.");
+    }
+
+    expect(
+      recordBuilderExample(
+        userSourcedId,
+        orgSourcedId,
+        classSourcedId,
+        enrollmentSourcedId,
+        dateLastModified,
+      ).users,
+    ).toHaveLength(1);
   });
 });

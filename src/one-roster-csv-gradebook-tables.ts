@@ -3,9 +3,11 @@ import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-dia
 import {
   defineProfileTables,
   defineOneRosterCsvRecordSerializer,
+  iterateProfileTableRecords,
   type OneRosterCsvRecordSet,
   type OneRosterCsvRecordTableDefinition,
 } from "./one-roster-csv-record-tables.js";
+import type { OneRosterCsvRecordBase } from "./one-roster-csv-record-types.js";
 import {
   parseCategoryRecord,
   parseLineItemLearningObjectiveIdRecord,
@@ -187,4 +189,14 @@ export function writeGradebookPackageTables(
   diagnostics: OneRosterCsvPackageWriteDiagnostic[],
 ): readonly OneRosterCsvWritableDataTable[] {
   return gradebookProfileTables.writePackageTables(packageValue, diagnostics);
+}
+
+/** Iterate every registered gradebook table and its typed records. */
+export function iterateGradebookPackageTables(
+  gradebookPackage: OneRosterCsvGradebookPackage,
+): ReadonlyArray<{
+  readonly key: keyof GradebookPackageRecords;
+  readonly records: ReadonlyArray<OneRosterCsvRecordBase>;
+}> {
+  return iterateProfileTableRecords(gradebookProfileTables, gradebookPackage);
 }

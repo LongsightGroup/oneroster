@@ -19,7 +19,10 @@ import {
   type OneRosterManifestFileModes,
   type OneRosterManifestSource,
 } from "./one-roster-csv-manifest.js";
-import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
+import {
+  oneRosterCsvFilesToZipEntries,
+  type OneRosterCsvPackage,
+} from "./one-roster-csv-package.js";
 import type { OneRosterCsvTable } from "./one-roster-csv-table.js";
 import { err, ok, type Result } from "./result.js";
 import {
@@ -81,8 +84,6 @@ type PackageWriteDiagnosticInput = {
   readonly expected?: string | number | undefined;
   readonly actual?: string | number | undefined;
 };
-
-const textEncoder = new TextEncoder();
 
 /** Write a normalized raw OneRoster CSV package into root-level ZIP entries. */
 export function writeOneRosterCsvPackageEntries(
@@ -152,16 +153,7 @@ export function writeOneRosterCsvPackageZipFromEntries(
 export function writeOneRosterCsvPackageZipFromFiles(
   files: Readonly<Record<string, string | Uint8Array>>,
 ): Result<Uint8Array, readonly OneRosterCsvPackageWriteDiagnostic[]> {
-  const entries: ZipEntry[] = [];
-
-  for (const [path, value] of Object.entries(files)) {
-    entries.push({
-      path,
-      bytes: typeof value === "string" ? textEncoder.encode(value) : value,
-    });
-  }
-
-  return writeOneRosterCsvPackageZipFromEntries(entries);
+  return writeOneRosterCsvPackageZipFromEntries(oneRosterCsvFilesToZipEntries(files));
 }
 
 /** Write prepared data tables and manifest metadata into root-level ZIP entries. */

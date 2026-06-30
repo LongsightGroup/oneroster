@@ -18,6 +18,7 @@ import {
 } from "./one-roster-csv-full.js";
 import { validateOneRosterCsvFullSemanticRules } from "./one-roster-csv-full-semantics.js";
 import {
+  oneRosterCsvFilesToZipEntries,
   parseOneRosterCsvPackageEntries,
   type OneRosterCsvPackageEntriesOptions,
   type OneRosterCsvPackageOptions,
@@ -70,6 +71,17 @@ export function parseAndValidateOneRosterCsvFullZip(
   }
 
   return validateOneRosterCsvFullPackage(parsedPackage.value, options);
+}
+
+/**
+ * Parse in-memory root-level OneRoster CSV files and validate all supported CSV record layers.
+ * String values are encoded as UTF-8 and byte values are parsed unchanged.
+ */
+export function parseAndValidateOneRosterCsvFullFiles(
+  files: Readonly<Record<string, string | Uint8Array>>,
+  options: OneRosterCsvFullEntriesValidationOptions = {},
+): Result<OneRosterCsvValidatedFullPackage, readonly OneRosterCsvPackageDiagnostic[]> {
+  return parseAndValidateOneRosterCsvFullEntries(oneRosterCsvFilesToZipEntries(files), options);
 }
 
 /** Parse already-extracted CSV package entries and validate all supported CSV record layers. */

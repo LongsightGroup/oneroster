@@ -3,17 +3,23 @@ import {
   formatOneRosterDiagnosticLocation,
   formatOneRosterUserDisplayName,
   getFirstActiveOneRosterResultScoreScale,
+  getFirstOneRosterResultScoreScale,
   getOneRosterLineItemScoreScales,
   getOneRosterRecordStatus,
   getOneRosterUserStatus,
   getResultScoreScaleSourcedIdsByResultSourcedId,
   iterateResolvedStudentEnrollments,
+  makeOneRosterEnrollmentRecord,
+  makeOneRosterUserRecord,
   oneRosterCsvTableHeaders,
+  oneRosterBulkLifecycle,
+  oneRosterDeltaDeleteLifecycle,
   oneRosterManifestRows,
   oneRosterRecordToCsvCells,
   oneRosterRecordToCsvObject,
   ok,
   parseAndValidateOneRosterCsvFullEntries,
+  parseAndValidateOneRosterCsvFullFiles,
   parseAndValidateOneRosterCsvFullZip,
   parseAndValidateOneRosterCsvGradebookZip,
   parseAndValidateOneRosterCsvResourcesZip,
@@ -21,6 +27,7 @@ import {
   parseCsv,
   parseOneRosterCsvPackageEntries,
   parseOneRosterCsvZip,
+  summarizeOneRosterCsvFullPackage,
   writeCsvBytes,
   writeOneRosterCsvFullPackageEntriesFromRecords,
   writeOneRosterCsvFullPackageZipFromRecords,
@@ -36,6 +43,7 @@ import {
   type CsvWriteDiagnostic,
   type OneRosterCsvFullPackage,
   type OneRosterCsvFullPackageRecordCollections,
+  type OneRosterCsvFullPackageSummary,
   type OneRosterCsvGradebookPackage,
   type OneRosterCsvPackage,
   type OneRosterCsvPackageDiagnostic,
@@ -44,6 +52,8 @@ import {
   type OneRosterCsvResourcesPackage,
   type OneRosterCsvRosteringPackage,
   type OneRosterCsvValidatedFullPackage,
+  type OneRosterDateTime,
+  type OneRosterGuid,
   type OneRosterManifestFileModes,
   type Result,
   type ZipEntry,
@@ -104,6 +114,18 @@ export function validateFullEntriesExample(
   entries: readonly ZipEntry[],
 ): Result<number, readonly OneRosterCsvPackageDiagnostic[]> {
   const result = parseAndValidateOneRosterCsvFullEntries(entries, { referenceMode: "allRows" });
+
+  if (result._tag === "err") {
+    return result;
+  }
+
+  return ok(result.value.resolvedIndexes.usersBySourcedId.size);
+}
+
+export function validateFullFilesExample(
+  files: Readonly<Record<string, string | Uint8Array>>,
+): Result<number, readonly OneRosterCsvPackageDiagnostic[]> {
+  const result = parseAndValidateOneRosterCsvFullFiles(files, { referenceMode: "allRows" });
 
   if (result._tag === "err") {
     return result;
@@ -213,6 +235,36 @@ export function writeFullRecordEntriesExample(
   });
 }
 
+export function recordBuilderExample(
+  userSourcedId: OneRosterGuid,
+  orgSourcedId: OneRosterGuid,
+  classSourcedId: OneRosterGuid,
+  enrollmentSourcedId: OneRosterGuid,
+  dateLastModified: OneRosterDateTime,
+): OneRosterCsvFullPackageRecordCollections {
+  const user = makeOneRosterUserRecord({
+    sourcedId: userSourcedId,
+    username: "learner",
+    givenName: "Learner",
+    familyName: "Example",
+    primaryOrgSourcedId: orgSourcedId,
+    lifecycle: oneRosterDeltaDeleteLifecycle(dateLastModified),
+  });
+  const enrollment = makeOneRosterEnrollmentRecord({
+    sourcedId: enrollmentSourcedId,
+    classSourcedId,
+    schoolSourcedId: orgSourcedId,
+    userSourcedId,
+    role: "student",
+    lifecycle: oneRosterBulkLifecycle(),
+  });
+
+  return {
+    users: [user],
+    enrollments: [enrollment],
+  };
+}
+
 export function manifestRowsExample(
   packageValue: OneRosterCsvPackage,
 ): ReadonlyArray<readonly string[]> {
@@ -258,14 +310,25 @@ export function relationshipHelperExample(packageValue: OneRosterCsvValidatedFul
     lineItem === undefined ? 0 : getOneRosterLineItemScoreScales(packageValue, lineItem).length;
   const firstResultScoreScale =
     result === undefined ? null : getFirstActiveOneRosterResultScoreScale(packageValue, result);
+  const firstAnyResultScoreScale =
+    result === undefined
+      ? null
+      : getFirstOneRosterResultScoreScale(packageValue, result, { includeInactive: true });
   const resultScoreScales = getResultScoreScaleSourcedIdsByResultSourcedId(packageValue);
 
   return (
     [...iterateResolvedStudentEnrollments(packageValue)].length +
     scoreScaleCount +
     resultScoreScales.size +
+    (firstAnyResultScoreScale === null ? 0 : 1) +
     (firstResultScoreScale === null ? 0 : 1)
   );
+}
+
+export function summaryExample(
+  packageValue: OneRosterCsvValidatedFullPackage,
+): OneRosterCsvFullPackageSummary {
+  return summarizeOneRosterCsvFullPackage(packageValue);
 }
 
 export function diagnosticLocationExample(

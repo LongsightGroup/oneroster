@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2]
+
+### Added
+
+- Direct full-package parser and validator for in-memory OneRoster CSV file maps
+- Common typed record builders for bulk lifecycles, delta delete lifecycles, users, and enrollments
+- Full-package summary helper with per-table, per-layer, active/inactive row, and user status counts
+- General `getFirstOneRosterResultScoreScale` helper for result score-scale relationships with optional inactive-row inclusion
+- Shared profile table iteration helpers used by full-package summary reporting
+
+### Changed
+
+- `getFirstActiveOneRosterResultScoreScale` is now always active-only across the parent result, link row, and score scale target
+- File-map ZIP writing now reuses the shared OneRoster CSV file-map-to-entry conversion
+- README recipes now cover file-map parse/write flows, relationship filtering policies, score-scale helpers, display-name formatting, and package summaries
+
 ## [0.2.1]
 
 ### Added

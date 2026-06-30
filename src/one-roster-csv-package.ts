@@ -17,6 +17,18 @@ import { parseOneRosterCsvTable, type OneRosterCsvTable } from "./one-roster-csv
 import { err, ok, type Result } from "./result.js";
 import { readZipEntries, type ZipEntry, type ZipReadOptions } from "./zip.js";
 
+const textEncoder = new TextEncoder();
+
+/** Convert root-level OneRoster CSV package files into ZIP entries. String values are encoded as UTF-8. */
+export function oneRosterCsvFilesToZipEntries(
+  files: Readonly<Record<string, string | Uint8Array>>,
+): readonly ZipEntry[] {
+  return Object.entries(files).map(([path, value]) => ({
+    path,
+    bytes: typeof value === "string" ? textEncoder.encode(value) : value,
+  }));
+}
+
 /** Parsed OneRoster CSV package with a strict manifest and normalized raw data tables. */
 export type OneRosterCsvPackage = {
   readonly manifest: OneRosterManifest;

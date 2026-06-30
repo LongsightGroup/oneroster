@@ -166,16 +166,29 @@ export function getOneRosterResultScoreScales(
 }
 
 /**
- * Return the first active resolved score-scale link for a results.csv record, or null.
+ * Return the first resolved score-scale link for a results.csv record, or null.
  * Inactive parent results, inactive link rows, and inactive scoreScales.csv targets are
- * omitted using the same default filtering as `getOneRosterResultScoreScales`.
+ * included only when `includeInactive` is true.
  */
-export function getFirstActiveOneRosterResultScoreScale(
+export function getFirstOneRosterResultScoreScale(
   validatedPackage: OneRosterCsvResolvedFullPackage,
   result: OneRosterResultRecord,
   options: OneRosterResolvedRelationshipOptions = {},
 ): OneRosterResolvedResultScoreScale | null {
   return resolveFirstResultScoreScale(validatedPackage, result, options);
+}
+
+/**
+ * Return the first active resolved score-scale link for a results.csv record, or null.
+ * Active always means active parent result, active link row, and active scoreScales.csv target.
+ * This helper intentionally omits `includeInactive`; use `getFirstOneRosterResultScoreScale` when
+ * callers need opt-in inactive resolution consistent with `getOneRosterResultScoreScales`.
+ */
+export function getFirstActiveOneRosterResultScoreScale(
+  validatedPackage: OneRosterCsvResolvedFullPackage,
+  result: OneRosterResultRecord,
+): OneRosterResolvedResultScoreScale | null {
+  return resolveFirstResultScoreScale(validatedPackage, result, {});
 }
 
 /**

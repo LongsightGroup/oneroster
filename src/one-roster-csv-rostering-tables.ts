@@ -4,9 +4,11 @@ import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-dia
 import {
   defineProfileTables,
   defineOneRosterCsvRecordSerializer,
+  iterateProfileTableRecords,
   type OneRosterCsvRecordSet,
   type OneRosterCsvRecordTableDefinition,
 } from "./one-roster-csv-record-tables.js";
+import type { OneRosterCsvRecordBase } from "./one-roster-csv-record-types.js";
 import {
   parseAcademicSessionRecord,
   parseClassRecord,
@@ -221,6 +223,16 @@ export function writeRosteringPackageTables(
   diagnostics: OneRosterCsvPackageWriteDiagnostic[],
 ): readonly OneRosterCsvWritableDataTable[] {
   return rosteringProfileTables.writePackageTables(packageValue, diagnostics);
+}
+
+/** Iterate every registered rostering table and its typed records. */
+export function iterateRosteringPackageTables(
+  rosteringPackage: OneRosterCsvRosteringPackage,
+): ReadonlyArray<{
+  readonly key: keyof RosteringPackageRecords;
+  readonly records: ReadonlyArray<OneRosterCsvRecordBase>;
+}> {
+  return iterateProfileTableRecords(rosteringProfileTables, rosteringPackage);
 }
 
 export type { OneRosterManifest };

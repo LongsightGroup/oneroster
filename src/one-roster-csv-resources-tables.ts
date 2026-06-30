@@ -3,9 +3,11 @@ import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-dia
 import {
   defineProfileTables,
   defineOneRosterCsvRecordSerializer,
+  iterateProfileTableRecords,
   type OneRosterCsvRecordSet,
   type OneRosterCsvRecordTableDefinition,
 } from "./one-roster-csv-record-tables.js";
+import type { OneRosterCsvRecordBase } from "./one-roster-csv-record-types.js";
 import {
   parseClassResourceRecord,
   parseCourseResourceRecord,
@@ -127,4 +129,14 @@ export function writeResourcesPackageTables(
   diagnostics: OneRosterCsvPackageWriteDiagnostic[],
 ): readonly OneRosterCsvWritableDataTable[] {
   return resourcesProfileTables.writePackageTables(packageValue, diagnostics);
+}
+
+/** Iterate every registered resources table and its typed records. */
+export function iterateResourcesPackageTables(
+  resourcesPackage: OneRosterCsvResourcesPackage,
+): ReadonlyArray<{
+  readonly key: keyof ResourcesPackageRecords;
+  readonly records: ReadonlyArray<OneRosterCsvRecordBase>;
+}> {
+  return iterateProfileTableRecords(resourcesProfileTables, resourcesPackage);
 }
