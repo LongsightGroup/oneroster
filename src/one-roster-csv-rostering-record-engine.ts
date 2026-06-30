@@ -1,4 +1,4 @@
-import type { RosteringRowContext } from "./one-roster-csv-rostering-context.js";
+import type { OneRosterCsvRecordRowContext } from "./one-roster-csv-record-context.js";
 import {
   parseBooleanField,
   parseCommonRecordFields,
@@ -10,7 +10,8 @@ import {
   parseStringListField,
   parseVocabularyField,
   parseYearField,
-} from "./one-roster-csv-rostering-fields.js";
+} from "./one-roster-csv-record-fields.js";
+import { hasNewRowDiagnostics } from "./one-roster-csv-record-row.js";
 import {
   academicSessionTypeValues,
   classTypeValues,
@@ -34,7 +35,7 @@ import type {
 
 /** Parse one academicSessions.csv row into a typed OneRoster record. */
 export function parseAcademicSessionRecord(
-  context: RosteringRowContext,
+  context: OneRosterCsvRecordRowContext,
 ): OneRosterAcademicSessionRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
@@ -46,7 +47,7 @@ export function parseAcademicSessionRecord(
   const schoolYear = parseYearField(context, "schoolYear", "required");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     title === undefined ||
     type === undefined ||
@@ -69,7 +70,9 @@ export function parseAcademicSessionRecord(
 }
 
 /** Parse one orgs.csv row into a typed OneRoster record. */
-export function parseOrgRecord(context: RosteringRowContext): OneRosterOrgRecord | undefined {
+export function parseOrgRecord(
+  context: OneRosterCsvRecordRowContext,
+): OneRosterOrgRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
   const name = parseRequiredStringField(context, "name");
@@ -78,7 +81,7 @@ export function parseOrgRecord(context: RosteringRowContext): OneRosterOrgRecord
   const parentSourcedId = parseGuidField(context, "parentSourcedId", "optional");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     name === undefined ||
     type === undefined
@@ -96,7 +99,9 @@ export function parseOrgRecord(context: RosteringRowContext): OneRosterOrgRecord
 }
 
 /** Parse one courses.csv row into a typed OneRoster record. */
-export function parseCourseRecord(context: RosteringRowContext): OneRosterCourseRecord | undefined {
+export function parseCourseRecord(
+  context: OneRosterCsvRecordRowContext,
+): OneRosterCourseRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
   const schoolYearSourcedId = parseGuidField(context, "schoolYearSourcedId", "optional");
@@ -108,7 +113,7 @@ export function parseCourseRecord(context: RosteringRowContext): OneRosterCourse
   const subjectCodes = parseStringListField(context, "subjectCodes", "optional");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     title === undefined ||
     grades === undefined ||
@@ -132,7 +137,9 @@ export function parseCourseRecord(context: RosteringRowContext): OneRosterCourse
 }
 
 /** Parse one classes.csv row into a typed OneRoster record. */
-export function parseClassRecord(context: RosteringRowContext): OneRosterClassRecord | undefined {
+export function parseClassRecord(
+  context: OneRosterCsvRecordRowContext,
+): OneRosterClassRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
   const title = parseRequiredStringField(context, "title");
@@ -148,7 +155,7 @@ export function parseClassRecord(context: RosteringRowContext): OneRosterClassRe
   const periods = parseStringListField(context, "periods", "optional");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     title === undefined ||
     grades === undefined ||
@@ -180,7 +187,9 @@ export function parseClassRecord(context: RosteringRowContext): OneRosterClassRe
 }
 
 /** Parse one users.csv row into a typed OneRoster record. */
-export function parseUserRecord(context: RosteringRowContext): OneRosterUserRecord | undefined {
+export function parseUserRecord(
+  context: OneRosterCsvRecordRowContext,
+): OneRosterUserRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
   const enabledUser = parseBooleanField(context, "enabledUser", "required");
@@ -204,7 +213,7 @@ export function parseUserRecord(context: RosteringRowContext): OneRosterUserReco
   const pronouns = parseOptionalStringField(context, "pronouns");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     enabledUser === undefined ||
     username === undefined ||
@@ -242,7 +251,9 @@ export function parseUserRecord(context: RosteringRowContext): OneRosterUserReco
 }
 
 /** Parse one roles.csv row into a typed OneRoster record. */
-export function parseRoleRecord(context: RosteringRowContext): OneRosterRoleRecord | undefined {
+export function parseRoleRecord(
+  context: OneRosterCsvRecordRowContext,
+): OneRosterRoleRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
   const userSourcedId = parseGuidField(context, "userSourcedId", "required");
@@ -254,7 +265,7 @@ export function parseRoleRecord(context: RosteringRowContext): OneRosterRoleReco
   const userProfileSourcedId = parseGuidField(context, "userProfileSourcedId", "optional");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     userSourcedId === undefined ||
     roleType === undefined ||
@@ -278,7 +289,7 @@ export function parseRoleRecord(context: RosteringRowContext): OneRosterRoleReco
 
 /** Parse one enrollments.csv row into a typed OneRoster record. */
 export function parseEnrollmentRecord(
-  context: RosteringRowContext,
+  context: OneRosterCsvRecordRowContext,
 ): OneRosterEnrollmentRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
@@ -291,7 +302,7 @@ export function parseEnrollmentRecord(
   const endDate = parseDateField(context, "endDate", "optional");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     classSourcedId === undefined ||
     schoolSourcedId === undefined ||
@@ -315,7 +326,7 @@ export function parseEnrollmentRecord(
 
 /** Parse one demographics.csv row into a typed OneRoster record. */
 export function parseDemographicsRecord(
-  context: RosteringRowContext,
+  context: OneRosterCsvRecordRowContext,
 ): OneRosterDemographicsRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
@@ -352,7 +363,7 @@ export function parseDemographicsRecord(
     "publicSchoolResidenceStatus",
   );
 
-  if (hasNewDiagnostics(context, diagnosticStart) || commonFields === undefined) {
+  if (hasNewRowDiagnostics(context, diagnosticStart) || commonFields === undefined) {
     return undefined;
   }
 
@@ -376,7 +387,7 @@ export function parseDemographicsRecord(
 
 /** Parse one userProfiles.csv row into a typed OneRoster record. */
 export function parseUserProfileRecord(
-  context: RosteringRowContext,
+  context: OneRosterCsvRecordRowContext,
 ): OneRosterUserProfileRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
   const commonFields = parseCommonRecordFields(context);
@@ -390,7 +401,7 @@ export function parseUserProfileRecord(
   const password = parseOptionalStringField(context, "password");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     userSourcedId === undefined ||
     profileType === undefined ||
@@ -412,8 +423,4 @@ export function parseUserProfileRecord(
     username,
     password,
   };
-}
-
-function hasNewDiagnostics(context: RosteringRowContext, diagnosticStart: number): boolean {
-  return context.diagnostics.length > diagnosticStart;
 }

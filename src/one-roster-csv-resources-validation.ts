@@ -15,28 +15,24 @@ import type {
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import {
+  collectProfileReferenceValidation,
+  type OneRosterCsvReferenceValidationOptions,
+} from "./one-roster-csv-profile-validation.js";
+import { isManifestDataFilePresent } from "./one-roster-csv-manifest.js";
+import {
   defineOneRosterCsvReferenceRule,
   optionalOneRosterCsvReference,
-  validateOneRosterCsvReferences,
   type OneRosterCsvReferenceRule,
   type OneRosterCsvReferenceTarget,
   type OneRosterCsvReferenceValidationContext,
 } from "./one-roster-csv-record-reference-validation.js";
-import {
-  collectOneRosterCsvRosteringValidation,
-  type OneRosterCsvReferenceValidationMode,
-  type OneRosterCsvRosteringValidationOptions,
-  type OneRosterCsvValidatedRosteringPackage,
-} from "./one-roster-csv-rostering-validation.js";
+import { rosteringIndexTargets } from "./one-roster-csv-rostering-reference-targets.js";
+import type { OneRosterCsvValidatedRosteringPackage } from "./one-roster-csv-rostering-validation.js";
 import type { OneRosterCsvRosteringReferenceIndexes } from "./one-roster-csv-rostering-types.js";
 import { err, ok, type Result } from "./result.js";
 
 export type { OneRosterCsvResourcesReferenceIndexes } from "./one-roster-csv-resources-types.js";
-
-/** Options for semantic validation of typed OneRoster CSV resources records. */
-export type OneRosterCsvResourcesValidationOptions = {
-  readonly referenceMode?: OneRosterCsvReferenceValidationMode;
-};
+export type { OneRosterCsvReferenceValidationOptions as OneRosterCsvResourcesValidationOptions } from "./one-roster-csv-profile-validation.js";
 
 /** OneRoster CSV resources package that has passed duplicate and reference validation. */
 export type OneRosterCsvValidatedResourcesPackage = {
@@ -53,21 +49,7 @@ type ResourcesReferenceValidationContext =
 
 type ResourcesReferenceRule = OneRosterCsvReferenceRule<ResourcesReferenceValidationContext>;
 
-function defineResourcesReferenceRule<TRecord extends OneRosterCsvResourcesRecordBase>(rule: {
-  readonly source: ResourcesRecordSet<TRecord>;
-  readonly field: string;
-  readonly target: OneRosterCsvReferenceTarget<ResourcesReferenceValidationContext>;
-  readonly getReferenceValues: (record: TRecord) => ReadonlyArray<TRecord["sourcedId"]>;
-}): ResourcesReferenceRule {
-  return defineOneRosterCsvReferenceRule({
-    source: rule.source,
-    field: rule.field,
-    target: rule.target,
-    getReferenceValues: rule.getReferenceValues,
-  });
-}
-
-function resourcesTarget<TRecord extends OneRosterCsvResourcesRecordBase>(
+function resourcesRecordSetTarget<TRecord extends OneRosterCsvResourcesRecordBase>(
   recordSet: ResourcesRecordSet<TRecord>,
 ): OneRosterCsvReferenceTarget<ResourcesReferenceValidationContext> {
   return {
@@ -76,80 +58,55 @@ function resourcesTarget<TRecord extends OneRosterCsvResourcesRecordBase>(
   };
 }
 
-const classesTarget: OneRosterCsvReferenceTarget<ResourcesReferenceValidationContext> = {
-  fileName: "classes.csv",
-  getIndex: (context) => context.rosteringIndexes.classesBySourcedId,
-};
-
-const coursesTarget: OneRosterCsvReferenceTarget<ResourcesReferenceValidationContext> = {
-  fileName: "courses.csv",
-  getIndex: (context) => context.rosteringIndexes.coursesBySourcedId,
-};
-
-const orgsTarget: OneRosterCsvReferenceTarget<ResourcesReferenceValidationContext> = {
-  fileName: "orgs.csv",
-  getIndex: (context) => context.rosteringIndexes.orgsBySourcedId,
-};
-
-const usersTarget: OneRosterCsvReferenceTarget<ResourcesReferenceValidationContext> = {
-  fileName: "users.csv",
-  getIndex: (context) => context.rosteringIndexes.usersBySourcedId,
-};
-
-function isResourcesTargetFilePresent(
-  packageValue: OneRosterCsvResourcesPackage,
-  targetFileName: Parameters<ResourcesReferenceValidationContext["isTargetFilePresent"]>[0],
-): boolean {
-  return packageValue.rosteringPackage.rawPackage.manifest.fileModes[targetFileName] !== "absent";
-}
+const rosteringTargets = rosteringIndexTargets<ResourcesReferenceValidationContext>();
 
 const RESOURCES_REFERENCE_RULES: readonly ResourcesReferenceRule[] = [
-  defineResourcesReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: classResourcesRecordSet,
     field: "classSourcedId",
-    target: classesTarget,
+    target: rosteringTargets.classes,
     getReferenceValues: (record) => [record.classSourcedId],
   }),
-  defineResourcesReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: classResourcesRecordSet,
     field: "resourceSourcedId",
-    target: resourcesTarget(resourcesRecordSet),
+    target: resourcesRecordSetTarget(resourcesRecordSet),
     getReferenceValues: (record) => [record.resourceSourcedId],
   }),
-  defineResourcesReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: courseResourcesRecordSet,
     field: "courseSourcedId",
-    target: coursesTarget,
+    target: rosteringTargets.courses,
     getReferenceValues: (record) => [record.courseSourcedId],
   }),
-  defineResourcesReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: courseResourcesRecordSet,
     field: "resourceSourcedId",
-    target: resourcesTarget(resourcesRecordSet),
+    target: resourcesRecordSetTarget(resourcesRecordSet),
     getReferenceValues: (record) => [record.resourceSourcedId],
   }),
-  defineResourcesReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: userResourcesRecordSet,
     field: "userSourcedId",
-    target: usersTarget,
+    target: rosteringTargets.users,
     getReferenceValues: (record) => [record.userSourcedId],
   }),
-  defineResourcesReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: userResourcesRecordSet,
     field: "orgSourcedId",
-    target: orgsTarget,
+    target: rosteringTargets.orgs,
     getReferenceValues: (record) => optionalOneRosterCsvReference(record.orgSourcedId),
   }),
-  defineResourcesReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: userResourcesRecordSet,
     field: "classSourcedId",
-    target: classesTarget,
+    target: rosteringTargets.classes,
     getReferenceValues: (record) => optionalOneRosterCsvReference(record.classSourcedId),
   }),
-  defineResourcesReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: userResourcesRecordSet,
     field: "resourceSourcedId",
-    target: resourcesTarget(resourcesRecordSet),
+    target: resourcesRecordSetTarget(resourcesRecordSet),
     getReferenceValues: (record) => [record.resourceSourcedId],
   }),
 ];
@@ -157,7 +114,7 @@ const RESOURCES_REFERENCE_RULES: readonly ResourcesReferenceRule[] = [
 /** Parse a OneRoster CSV ZIP archive and validate resources plus rostering references. */
 export function parseAndValidateOneRosterCsvResourcesZip(
   bytes: Uint8Array,
-  options: OneRosterCsvPackageOptions & OneRosterCsvResourcesValidationOptions = {},
+  options: OneRosterCsvPackageOptions & OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedResourcesPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   const parsedPackage = parseOneRosterCsvResourcesZip(bytes, options);
 
@@ -171,38 +128,44 @@ export function parseAndValidateOneRosterCsvResourcesZip(
 /** Validate duplicate sourcedIds and direct references in a typed resources package. */
 export function validateOneRosterCsvResourcesPackage(
   packageValue: OneRosterCsvResourcesPackage,
-  options: OneRosterCsvResourcesValidationOptions = {},
+  options: OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedResourcesPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const rosteringOptions: OneRosterCsvRosteringValidationOptions =
-    options.referenceMode === undefined ? {} : { referenceMode: options.referenceMode };
-  const rosteringValidation = collectOneRosterCsvRosteringValidation(
-    packageValue.rosteringPackage,
-    rosteringOptions,
-  );
-  const diagnostics: OneRosterCsvPackageDiagnostic[] = [...rosteringValidation.diagnostics];
-  const indexes = buildResourcesReferenceIndexes(packageValue, diagnostics);
-  const context: ResourcesReferenceValidationContext = {
+  const validation = collectProfileReferenceValidation({
+    rosteringPackage: packageValue.rosteringPackage,
     packageValue,
-    rosteringIndexes: rosteringValidation.indexes,
-    indexes,
-    diagnostics,
-    referenceMode: options.referenceMode ?? "bulkOnly",
-    isTargetFilePresent: (targetFileName) =>
-      isResourcesTargetFilePresent(packageValue, targetFileName),
-  };
+    options,
+    buildIndexes: buildResourcesReferenceIndexes,
+    buildContext: ({
+      packageValue: currentPackage,
+      rosteringValidation,
+      indexes,
+      diagnostics,
+      referenceMode,
+    }) => ({
+      packageValue: currentPackage,
+      rosteringIndexes: rosteringValidation.indexes,
+      indexes,
+      diagnostics,
+      referenceMode,
+      isTargetFilePresent: (targetFileName) =>
+        isManifestDataFilePresent(
+          currentPackage.rosteringPackage.rawPackage.manifest.fileModes,
+          targetFileName,
+        ),
+    }),
+    rules: RESOURCES_REFERENCE_RULES,
+  });
 
-  validateOneRosterCsvReferences(RESOURCES_REFERENCE_RULES, context);
-
-  if (diagnostics.length > 0) {
-    return err(diagnostics);
+  if (validation.diagnostics.length > 0) {
+    return err(validation.diagnostics);
   }
 
   return ok({
     resourcesPackage: packageValue,
     rosteringValidation: {
       rosteringPackage: packageValue.rosteringPackage,
-      indexes: rosteringValidation.indexes,
+      indexes: validation.rosteringValidation.indexes,
     },
-    indexes,
+    indexes: validation.indexes,
   });
 }

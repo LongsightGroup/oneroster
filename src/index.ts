@@ -135,6 +135,7 @@ export type {
 } from "./one-roster-csv-rostering.js";
 export type {
   OneRosterCsvReferenceValidationMode,
+  OneRosterCsvReferenceValidationOptions,
   OneRosterCsvRosteringReferenceIndexes,
   OneRosterCsvRosteringValidationOptions,
   OneRosterCsvValidatedRosteringPackage,

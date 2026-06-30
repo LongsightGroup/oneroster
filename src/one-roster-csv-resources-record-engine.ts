@@ -7,6 +7,7 @@ import {
   parseVocabularyField,
   parseVocabularyListField,
 } from "./one-roster-csv-record-fields.js";
+import { hasNewRowDiagnostics } from "./one-roster-csv-record-row.js";
 import { resourceImportanceValues, resourceRoleValues } from "./one-roster-csv-resources-schema.js";
 import type {
   OneRosterClassResourceRecord,
@@ -35,7 +36,7 @@ export function parseResourceRecord(
   const applicationId = parseOptionalStringField(context, "applicationId");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     vendorResourceId === undefined ||
     roles === undefined
@@ -65,7 +66,7 @@ export function parseClassResourceRecord(
   const resourceSourcedId = parseGuidField(context, "resourceSourcedId", "required");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     classSourcedId === undefined ||
     resourceSourcedId === undefined
@@ -92,7 +93,7 @@ export function parseCourseResourceRecord(
   const resourceSourcedId = parseGuidField(context, "resourceSourcedId", "required");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     courseSourcedId === undefined ||
     resourceSourcedId === undefined
@@ -120,7 +121,7 @@ export function parseUserResourceRecord(
   const resourceSourcedId = parseGuidField(context, "resourceSourcedId", "required");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     userSourcedId === undefined ||
     resourceSourcedId === undefined
@@ -135,11 +136,4 @@ export function parseUserResourceRecord(
     classSourcedId,
     resourceSourcedId,
   };
-}
-
-function hasNewDiagnostics(
-  context: OneRosterCsvRecordRowContext,
-  diagnosticStart: number,
-): boolean {
-  return context.diagnostics.length > diagnosticStart;
 }

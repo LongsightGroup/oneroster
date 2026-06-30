@@ -1,4 +1,7 @@
-import { packageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
+import {
+  packageDiagnostic,
+  type OneRosterCsvPackageDiagnosticCode,
+} from "./one-roster-csv-package-diagnostic.js";
 import {
   parseOneRosterBooleanToken,
   parseOneRosterDate,
@@ -195,30 +198,11 @@ export function parseGuidField(
   field: string,
   requiredness: OneRosterCsvFieldRequiredness,
 ): OneRosterGuid | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
-
-  if (value === undefined || value === "") {
-    return undefined;
-  }
-
-  const guid = parseOneRosterGuid(value);
-
-  if (guid !== undefined) {
-    return guid;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.invalid_guid",
-      message: "OneRoster GUID values must be 1-255 permitted characters.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field,
-      expected: "1-255 characters from 0-9 A-Z a-z . - _ / @",
-      actual: "invalid value",
-    }),
-  );
-  return undefined;
+  return parseValidatedPrimitiveField(context, field, requiredness, parseOneRosterGuid, {
+    code: "row.invalid_guid",
+    message: "OneRoster GUID values must be 1-255 permitted characters.",
+    expected: "1-255 characters from 0-9 A-Z a-z . - _ / @",
+  });
 }
 
 /** Parse a OneRoster Date field with requiredness diagnostics. */
@@ -227,30 +211,11 @@ export function parseDateField(
   field: string,
   requiredness: OneRosterCsvFieldRequiredness,
 ): OneRosterDate | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
-
-  if (value === undefined || value === "") {
-    return undefined;
-  }
-
-  const date = parseOneRosterDate(value);
-
-  if (date !== undefined) {
-    return date;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.invalid_date",
-      message: "OneRoster Date values must match YYYY-MM-DD.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field,
-      expected: "YYYY-MM-DD",
-      actual: "invalid value",
-    }),
-  );
-  return undefined;
+  return parseValidatedPrimitiveField(context, field, requiredness, parseOneRosterDate, {
+    code: "row.invalid_date",
+    message: "OneRoster Date values must match YYYY-MM-DD.",
+    expected: "YYYY-MM-DD",
+  });
 }
 
 /** Parse a OneRoster Year field with requiredness diagnostics. */
@@ -259,30 +224,11 @@ export function parseYearField(
   field: string,
   requiredness: OneRosterCsvFieldRequiredness,
 ): OneRosterYear | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
-
-  if (value === undefined || value === "") {
-    return undefined;
-  }
-
-  const year = parseOneRosterYear(value);
-
-  if (year !== undefined) {
-    return year;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.invalid_year",
-      message: "OneRoster Year values must match YYYY.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field,
-      expected: "YYYY",
-      actual: "invalid value",
-    }),
-  );
-  return undefined;
+  return parseValidatedPrimitiveField(context, field, requiredness, parseOneRosterYear, {
+    code: "row.invalid_year",
+    message: "OneRoster Year values must match YYYY.",
+    expected: "YYYY",
+  });
 }
 
 /** Parse a OneRoster boolean vocabulary field with requiredness diagnostics. */
@@ -291,30 +237,11 @@ export function parseBooleanField(
   field: string,
   requiredness: OneRosterCsvFieldRequiredness,
 ): boolean | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
-
-  if (value === undefined || value === "") {
-    return undefined;
-  }
-
-  const booleanValue = parseOneRosterBooleanToken(value);
-
-  if (booleanValue !== undefined) {
-    return booleanValue;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.invalid_boolean",
-      message: 'OneRoster boolean vocabulary values must be "true" or "false".',
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field,
-      expected: "true|false",
-      actual: "invalid value",
-    }),
-  );
-  return undefined;
+  return parseValidatedPrimitiveField(context, field, requiredness, parseOneRosterBooleanToken, {
+    code: "row.invalid_boolean",
+    message: 'OneRoster boolean vocabulary values must be "true" or "false".',
+    expected: "true|false",
+  });
 }
 
 /** Parse a OneRoster integer field with requiredness diagnostics. */
@@ -323,30 +250,11 @@ export function parseIntegerField(
   field: string,
   requiredness: OneRosterCsvFieldRequiredness,
 ): OneRosterInteger | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
-
-  if (value === undefined || value === "") {
-    return undefined;
-  }
-
-  const integer = parseOneRosterInteger(value);
-
-  if (integer !== undefined) {
-    return integer;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.invalid_integer",
-      message: "OneRoster Integer values must be safe base-10 integers.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field,
-      expected: "base-10 integer",
-      actual: "invalid value",
-    }),
-  );
-  return undefined;
+  return parseValidatedPrimitiveField(context, field, requiredness, parseOneRosterInteger, {
+    code: "row.invalid_integer",
+    message: "OneRoster Integer values must be safe base-10 integers.",
+    expected: "base-10 integer",
+  });
 }
 
 /** Parse a OneRoster float field with requiredness diagnostics. */
@@ -355,30 +263,11 @@ export function parseFloatField(
   field: string,
   requiredness: OneRosterCsvFieldRequiredness,
 ): OneRosterFloat | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
-
-  if (value === undefined || value === "") {
-    return undefined;
-  }
-
-  const float = parseOneRosterFloat(value);
-
-  if (float !== undefined) {
-    return float;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.invalid_float",
-      message: "OneRoster Float values must be finite base-10 numbers.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field,
-      expected: "finite base-10 number",
-      actual: "invalid value",
-    }),
-  );
-  return undefined;
+  return parseValidatedPrimitiveField(context, field, requiredness, parseOneRosterFloat, {
+    code: "row.invalid_float",
+    message: "OneRoster Float values must be finite base-10 numbers.",
+    expected: "finite base-10 number",
+  });
 }
 
 export function parseVocabularyField<TValue extends string>(
@@ -618,6 +507,43 @@ function splitOneRosterList(
   }
 
   return values;
+}
+
+function parseValidatedPrimitiveField<T>(
+  context: OneRosterCsvRecordRowContext,
+  field: string,
+  requiredness: OneRosterCsvFieldRequiredness,
+  parse: (value: string) => T | undefined,
+  invalidDiagnostic: {
+    readonly code: OneRosterCsvPackageDiagnosticCode;
+    readonly message: string;
+    readonly expected: string;
+  },
+): T | undefined {
+  const value = readPossiblyRequiredCell(context, field, requiredness);
+
+  if (value === undefined || value === "") {
+    return undefined;
+  }
+
+  const parsed = parse(value);
+
+  if (parsed !== undefined) {
+    return parsed;
+  }
+
+  context.diagnostics.push(
+    packageDiagnostic({
+      code: invalidDiagnostic.code,
+      message: invalidDiagnostic.message,
+      fileName: context.table.fileName,
+      rowNumber: context.row.rowNumber,
+      field,
+      expected: invalidDiagnostic.expected,
+      actual: "invalid value",
+    }),
+  );
+  return undefined;
 }
 
 function readPossiblyRequiredCell(

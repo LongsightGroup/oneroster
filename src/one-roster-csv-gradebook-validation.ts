@@ -19,28 +19,24 @@ import {
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import {
+  collectProfileReferenceValidation,
+  type OneRosterCsvReferenceValidationOptions,
+} from "./one-roster-csv-profile-validation.js";
+import { isManifestDataFilePresent } from "./one-roster-csv-manifest.js";
+import {
   defineOneRosterCsvReferenceRule,
   optionalOneRosterCsvReference,
-  validateOneRosterCsvReferences,
   type OneRosterCsvReferenceRule,
   type OneRosterCsvReferenceTarget,
   type OneRosterCsvReferenceValidationContext,
 } from "./one-roster-csv-record-reference-validation.js";
-import {
-  collectOneRosterCsvRosteringValidation,
-  type OneRosterCsvReferenceValidationMode,
-  type OneRosterCsvRosteringValidationOptions,
-  type OneRosterCsvValidatedRosteringPackage,
-} from "./one-roster-csv-rostering-validation.js";
+import { rosteringIndexTargets } from "./one-roster-csv-rostering-reference-targets.js";
+import type { OneRosterCsvValidatedRosteringPackage } from "./one-roster-csv-rostering-validation.js";
 import type { OneRosterCsvRosteringReferenceIndexes } from "./one-roster-csv-rostering-types.js";
 import { err, ok, type Result } from "./result.js";
 
 export type { OneRosterCsvGradebookReferenceIndexes } from "./one-roster-csv-gradebook-types.js";
-
-/** Options for semantic validation of typed OneRoster CSV gradebook records. */
-export type OneRosterCsvGradebookValidationOptions = {
-  readonly referenceMode?: OneRosterCsvReferenceValidationMode;
-};
+export type { OneRosterCsvReferenceValidationOptions as OneRosterCsvGradebookValidationOptions } from "./one-roster-csv-profile-validation.js";
 
 /** OneRoster CSV gradebook package that has passed duplicate and reference validation. */
 export type OneRosterCsvValidatedGradebookPackage = {
@@ -57,21 +53,7 @@ type GradebookReferenceValidationContext =
 
 type GradebookReferenceRule = OneRosterCsvReferenceRule<GradebookReferenceValidationContext>;
 
-function defineGradebookReferenceRule<TRecord extends OneRosterCsvGradebookRecordBase>(rule: {
-  readonly source: GradebookRecordSet<TRecord>;
-  readonly field: string;
-  readonly target: OneRosterCsvReferenceTarget<GradebookReferenceValidationContext>;
-  readonly getReferenceValues: (record: TRecord) => ReadonlyArray<TRecord["sourcedId"]>;
-}): GradebookReferenceRule {
-  return defineOneRosterCsvReferenceRule({
-    source: rule.source,
-    field: rule.field,
-    target: rule.target,
-    getReferenceValues: rule.getReferenceValues,
-  });
-}
-
-function gradebookTarget<TRecord extends OneRosterCsvGradebookRecordBase>(
+function gradebookRecordSetTarget<TRecord extends OneRosterCsvGradebookRecordBase>(
   recordSet: GradebookRecordSet<TRecord>,
 ): OneRosterCsvReferenceTarget<GradebookReferenceValidationContext> {
   return {
@@ -80,133 +62,103 @@ function gradebookTarget<TRecord extends OneRosterCsvGradebookRecordBase>(
   };
 }
 
-const academicSessionsTarget: OneRosterCsvReferenceTarget<GradebookReferenceValidationContext> = {
-  fileName: "academicSessions.csv",
-  getIndex: (context) => context.rosteringIndexes.academicSessionsBySourcedId,
-};
-
-const classesTarget: OneRosterCsvReferenceTarget<GradebookReferenceValidationContext> = {
-  fileName: "classes.csv",
-  getIndex: (context) => context.rosteringIndexes.classesBySourcedId,
-};
-
-const coursesTarget: OneRosterCsvReferenceTarget<GradebookReferenceValidationContext> = {
-  fileName: "courses.csv",
-  getIndex: (context) => context.rosteringIndexes.coursesBySourcedId,
-};
-
-const orgsTarget: OneRosterCsvReferenceTarget<GradebookReferenceValidationContext> = {
-  fileName: "orgs.csv",
-  getIndex: (context) => context.rosteringIndexes.orgsBySourcedId,
-};
-
-const usersTarget: OneRosterCsvReferenceTarget<GradebookReferenceValidationContext> = {
-  fileName: "users.csv",
-  getIndex: (context) => context.rosteringIndexes.usersBySourcedId,
-};
-
-function isGradebookTargetFilePresent(
-  packageValue: OneRosterCsvGradebookPackage,
-  targetFileName: Parameters<GradebookReferenceValidationContext["isTargetFilePresent"]>[0],
-): boolean {
-  return packageValue.rosteringPackage.rawPackage.manifest.fileModes[targetFileName] !== "absent";
-}
+const rosteringTargets = rosteringIndexTargets<GradebookReferenceValidationContext>();
 
 const GRADEBOOK_REFERENCE_RULES: readonly GradebookReferenceRule[] = [
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: lineItemsRecordSet,
     field: "classSourcedId",
-    target: classesTarget,
+    target: rosteringTargets.classes,
     getReferenceValues: (record) => [record.classSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: lineItemsRecordSet,
     field: "categorySourcedId",
-    target: gradebookTarget(categoriesRecordSet),
+    target: gradebookRecordSetTarget(categoriesRecordSet),
     getReferenceValues: (record) => [record.categorySourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: lineItemsRecordSet,
     field: "academicSessionSourcedId",
-    target: academicSessionsTarget,
+    target: rosteringTargets.academicSessions,
     getReferenceValues: (record) => [record.academicSessionSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: lineItemsRecordSet,
     field: "schoolSourcedId",
-    target: orgsTarget,
+    target: rosteringTargets.orgs,
     getReferenceValues: (record) => [record.schoolSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: resultsRecordSet,
     field: "lineItemSourcedId",
-    target: gradebookTarget(lineItemsRecordSet),
+    target: gradebookRecordSetTarget(lineItemsRecordSet),
     getReferenceValues: (record) => [record.lineItemSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: resultsRecordSet,
     field: "studentSourcedId",
-    target: usersTarget,
+    target: rosteringTargets.users,
     getReferenceValues: (record) => [record.studentSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: resultsRecordSet,
     field: "classSourcedId",
-    target: classesTarget,
+    target: rosteringTargets.classes,
     getReferenceValues: (record) => optionalOneRosterCsvReference(record.classSourcedId),
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: scoreScalesRecordSet,
     field: "orgSourcedId",
-    target: orgsTarget,
+    target: rosteringTargets.orgs,
     getReferenceValues: (record) => [record.orgSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: scoreScalesRecordSet,
     field: "courseSourcedId",
-    target: coursesTarget,
+    target: rosteringTargets.courses,
     getReferenceValues: (record) => [record.courseSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: scoreScalesRecordSet,
     field: "classSourcedId",
-    target: classesTarget,
+    target: rosteringTargets.classes,
     getReferenceValues: (record) => [record.classSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: lineItemLearningObjectiveIdsRecordSet,
     field: "lineItemSourcedId",
-    target: gradebookTarget(lineItemsRecordSet),
+    target: gradebookRecordSetTarget(lineItemsRecordSet),
     getReferenceValues: (record) => [record.lineItemSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: lineItemScoreScalesRecordSet,
     field: "lineItemSourcedId",
-    target: gradebookTarget(lineItemsRecordSet),
+    target: gradebookRecordSetTarget(lineItemsRecordSet),
     getReferenceValues: (record) => [record.lineItemSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: lineItemScoreScalesRecordSet,
     field: "scoreScaleSourcedId",
-    target: gradebookTarget(scoreScalesRecordSet),
+    target: gradebookRecordSetTarget(scoreScalesRecordSet),
     getReferenceValues: (record) => [record.scoreScaleSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: resultLearningObjectiveIdsRecordSet,
     field: "resultSourcedId",
-    target: gradebookTarget(resultsRecordSet),
+    target: gradebookRecordSetTarget(resultsRecordSet),
     getReferenceValues: (record) => [record.resultSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: resultScoreScalesRecordSet,
     field: "resultSourcedId",
-    target: gradebookTarget(resultsRecordSet),
+    target: gradebookRecordSetTarget(resultsRecordSet),
     getReferenceValues: (record) => [record.resultSourcedId],
   }),
-  defineGradebookReferenceRule({
+  defineOneRosterCsvReferenceRule({
     source: resultScoreScalesRecordSet,
     field: "scoreScaleSourcedId",
-    target: gradebookTarget(scoreScalesRecordSet),
+    target: gradebookRecordSetTarget(scoreScalesRecordSet),
     getReferenceValues: (record) => [record.scoreScaleSourcedId],
   }),
 ];
@@ -214,7 +166,7 @@ const GRADEBOOK_REFERENCE_RULES: readonly GradebookReferenceRule[] = [
 /** Parse a OneRoster CSV ZIP archive and validate gradebook plus rostering references. */
 export function parseAndValidateOneRosterCsvGradebookZip(
   bytes: Uint8Array,
-  options: OneRosterCsvPackageOptions & OneRosterCsvGradebookValidationOptions = {},
+  options: OneRosterCsvPackageOptions & OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedGradebookPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   const parsedPackage = parseOneRosterCsvGradebookZip(bytes, options);
 
@@ -228,38 +180,44 @@ export function parseAndValidateOneRosterCsvGradebookZip(
 /** Validate duplicate sourcedIds and direct references in a typed gradebook package. */
 export function validateOneRosterCsvGradebookPackage(
   packageValue: OneRosterCsvGradebookPackage,
-  options: OneRosterCsvGradebookValidationOptions = {},
+  options: OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedGradebookPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const rosteringOptions: OneRosterCsvRosteringValidationOptions =
-    options.referenceMode === undefined ? {} : { referenceMode: options.referenceMode };
-  const rosteringValidation = collectOneRosterCsvRosteringValidation(
-    packageValue.rosteringPackage,
-    rosteringOptions,
-  );
-  const diagnostics: OneRosterCsvPackageDiagnostic[] = [...rosteringValidation.diagnostics];
-  const indexes = buildGradebookReferenceIndexes(packageValue, diagnostics);
-  const context: GradebookReferenceValidationContext = {
+  const validation = collectProfileReferenceValidation({
+    rosteringPackage: packageValue.rosteringPackage,
     packageValue,
-    rosteringIndexes: rosteringValidation.indexes,
-    indexes,
-    diagnostics,
-    referenceMode: options.referenceMode ?? "bulkOnly",
-    isTargetFilePresent: (targetFileName) =>
-      isGradebookTargetFilePresent(packageValue, targetFileName),
-  };
+    options,
+    buildIndexes: buildGradebookReferenceIndexes,
+    buildContext: ({
+      packageValue: currentPackage,
+      rosteringValidation,
+      indexes,
+      diagnostics,
+      referenceMode,
+    }) => ({
+      packageValue: currentPackage,
+      rosteringIndexes: rosteringValidation.indexes,
+      indexes,
+      diagnostics,
+      referenceMode,
+      isTargetFilePresent: (targetFileName) =>
+        isManifestDataFilePresent(
+          currentPackage.rosteringPackage.rawPackage.manifest.fileModes,
+          targetFileName,
+        ),
+    }),
+    rules: GRADEBOOK_REFERENCE_RULES,
+  });
 
-  validateOneRosterCsvReferences(GRADEBOOK_REFERENCE_RULES, context);
-
-  if (diagnostics.length > 0) {
-    return err(diagnostics);
+  if (validation.diagnostics.length > 0) {
+    return err(validation.diagnostics);
   }
 
   return ok({
     gradebookPackage: packageValue,
     rosteringValidation: {
       rosteringPackage: packageValue.rosteringPackage,
-      indexes: rosteringValidation.indexes,
+      indexes: validation.rosteringValidation.indexes,
     },
-    indexes,
+    indexes: validation.indexes,
   });
 }

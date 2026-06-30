@@ -33,6 +33,14 @@ export type OneRosterManifest = {
   readonly source?: OneRosterManifestSource;
 };
 
+/** Return whether a manifest declares a data file as supplied. */
+export function isManifestDataFilePresent(
+  fileModes: OneRosterManifestFileModes,
+  targetFileName: OneRosterCsvDataFileName,
+): boolean {
+  return fileModes[targetFileName] !== "absent";
+}
+
 type ManifestPropertyRow = {
   readonly propertyName: string;
   readonly value: string;

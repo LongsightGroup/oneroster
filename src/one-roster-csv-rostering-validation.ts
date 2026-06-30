@@ -1,6 +1,7 @@
 import { parseOneRosterCsvRosteringZip } from "./one-roster-csv-rostering.js";
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
+import { isManifestDataFilePresent } from "./one-roster-csv-manifest.js";
 import {
   defineOneRosterCsvReferenceRule,
   optionalOneRosterCsvReference,
@@ -8,7 +9,7 @@ import {
   type OneRosterCsvReferenceRule,
   type OneRosterCsvReferenceTarget,
   type OneRosterCsvReferenceValidationContext,
-  type OneRosterCsvReferenceValidationMode,
+  type OneRosterCsvReferenceValidationOptions,
 } from "./one-roster-csv-record-reference-validation.js";
 import {
   academicSessionsRecordSet,
@@ -31,12 +32,11 @@ import type {
 import { err, ok, type Result } from "./result.js";
 
 export type { OneRosterCsvRosteringReferenceIndexes } from "./one-roster-csv-rostering-types.js";
-export type { OneRosterCsvReferenceValidationMode } from "./one-roster-csv-record-reference-validation.js";
-
-/** Options for semantic validation of typed OneRoster CSV rostering records. */
-export type OneRosterCsvRosteringValidationOptions = {
-  readonly referenceMode?: OneRosterCsvReferenceValidationMode;
-};
+export type {
+  OneRosterCsvReferenceValidationMode,
+  OneRosterCsvReferenceValidationOptions,
+  OneRosterCsvReferenceValidationOptions as OneRosterCsvRosteringValidationOptions,
+} from "./one-roster-csv-record-reference-validation.js";
 
 /** OneRoster CSV rostering package that has passed duplicate and reference validation. */
 export type OneRosterCsvValidatedRosteringPackage = {
@@ -57,24 +57,7 @@ type ReferenceValidationContext =
 
 type ReferenceRule = OneRosterCsvReferenceRule<ReferenceValidationContext>;
 
-function defineReferenceRule<
-  TRecord extends OneRosterCsvRosteringRecordBase,
-  TTargetRecord extends OneRosterCsvRosteringRecordBase,
->(rule: {
-  readonly source: RosteringRecordSet<TRecord>;
-  readonly field: string;
-  readonly target: RosteringRecordSet<TTargetRecord>;
-  readonly getReferenceValues: (record: TRecord) => ReadonlyArray<TRecord["sourcedId"]>;
-}): ReferenceRule {
-  return defineOneRosterCsvReferenceRule({
-    source: rule.source,
-    field: rule.field,
-    target: targetFromRecordSet(rule.target),
-    getReferenceValues: rule.getReferenceValues,
-  });
-}
-
-function targetFromRecordSet<TRecord extends OneRosterCsvRosteringRecordBase>(
+function rosteringRecordSetTarget<TRecord extends OneRosterCsvRosteringRecordBase>(
   recordSet: RosteringRecordSet<TRecord>,
 ): OneRosterCsvReferenceTarget<ReferenceValidationContext> {
   return {
@@ -83,17 +66,116 @@ function targetFromRecordSet<TRecord extends OneRosterCsvRosteringRecordBase>(
   };
 }
 
-function isRosteringTargetFilePresent(
-  packageValue: OneRosterCsvRosteringPackage,
-  targetFileName: Parameters<ReferenceValidationContext["isTargetFilePresent"]>[0],
-): boolean {
-  return packageValue.rawPackage.manifest.fileModes[targetFileName] !== "absent";
-}
+const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
+  defineOneRosterCsvReferenceRule({
+    source: academicSessionsRecordSet,
+    field: "parentSourcedId",
+    target: rosteringRecordSetTarget(academicSessionsRecordSet),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.parentSourcedId),
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: orgsRecordSet,
+    field: "parentSourcedId",
+    target: rosteringRecordSetTarget(orgsRecordSet),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.parentSourcedId),
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: coursesRecordSet,
+    field: "schoolYearSourcedId",
+    target: rosteringRecordSetTarget(academicSessionsRecordSet),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.schoolYearSourcedId),
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: coursesRecordSet,
+    field: "orgSourcedId",
+    target: rosteringRecordSetTarget(orgsRecordSet),
+    getReferenceValues: (record) => [record.orgSourcedId],
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: classesRecordSet,
+    field: "courseSourcedId",
+    target: rosteringRecordSetTarget(coursesRecordSet),
+    getReferenceValues: (record) => [record.courseSourcedId],
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: classesRecordSet,
+    field: "schoolSourcedId",
+    target: rosteringRecordSetTarget(orgsRecordSet),
+    getReferenceValues: (record) => [record.schoolSourcedId],
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: classesRecordSet,
+    field: "termSourcedIds",
+    target: rosteringRecordSetTarget(academicSessionsRecordSet),
+    getReferenceValues: (record) => record.termSourcedIds,
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: usersRecordSet,
+    field: "agentSourcedIds",
+    target: rosteringRecordSetTarget(usersRecordSet),
+    getReferenceValues: (record) => record.agentSourcedIds,
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: usersRecordSet,
+    field: "primaryOrgSourcedId",
+    target: rosteringRecordSetTarget(orgsRecordSet),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.primaryOrgSourcedId),
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: rolesRecordSet,
+    field: "userSourcedId",
+    target: rosteringRecordSetTarget(usersRecordSet),
+    getReferenceValues: (record) => [record.userSourcedId],
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: rolesRecordSet,
+    field: "orgSourcedId",
+    target: rosteringRecordSetTarget(orgsRecordSet),
+    getReferenceValues: (record) => [record.orgSourcedId],
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: rolesRecordSet,
+    field: "userProfileSourcedId",
+    target: rosteringRecordSetTarget(userProfilesRecordSet),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.userProfileSourcedId),
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: enrollmentsRecordSet,
+    field: "classSourcedId",
+    target: rosteringRecordSetTarget(classesRecordSet),
+    getReferenceValues: (record) => [record.classSourcedId],
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: enrollmentsRecordSet,
+    field: "schoolSourcedId",
+    target: rosteringRecordSetTarget(orgsRecordSet),
+    getReferenceValues: (record) => [record.schoolSourcedId],
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: enrollmentsRecordSet,
+    field: "userSourcedId",
+    target: rosteringRecordSetTarget(usersRecordSet),
+    getReferenceValues: (record) => [record.userSourcedId],
+  }),
+  // demographics.csv sourcedId must match a users.csv sourcedId (1:1 extension of user identity).
+  defineOneRosterCsvReferenceRule({
+    source: demographicsRecordSet,
+    field: "sourcedId",
+    target: rosteringRecordSetTarget(usersRecordSet),
+    getReferenceValues: (record) => [record.sourcedId],
+  }),
+  defineOneRosterCsvReferenceRule({
+    source: userProfilesRecordSet,
+    field: "userSourcedId",
+    target: rosteringRecordSetTarget(usersRecordSet),
+    getReferenceValues: (record) => [record.userSourcedId],
+  }),
+];
 
 /** Collect duplicate and reference validation diagnostics for typed rostering records. */
 export function collectOneRosterCsvRosteringValidation(
   packageValue: OneRosterCsvRosteringPackage,
-  options: OneRosterCsvRosteringValidationOptions = {},
+  options: OneRosterCsvReferenceValidationOptions = {},
 ): OneRosterCsvRosteringValidationState {
   const diagnostics: OneRosterCsvPackageDiagnostic[] = [];
   const indexes = buildRosteringReferenceIndexes(packageValue, diagnostics);
@@ -103,7 +185,7 @@ export function collectOneRosterCsvRosteringValidation(
     diagnostics,
     referenceMode: options.referenceMode ?? "bulkOnly",
     isTargetFilePresent: (targetFileName) =>
-      isRosteringTargetFilePresent(packageValue, targetFileName),
+      isManifestDataFilePresent(packageValue.rawPackage.manifest.fileModes, targetFileName),
   };
 
   validateOneRosterCsvReferences(ROSTERING_REFERENCE_RULES, context);
@@ -114,116 +196,10 @@ export function collectOneRosterCsvRosteringValidation(
   };
 }
 
-const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
-  defineReferenceRule({
-    source: academicSessionsRecordSet,
-    field: "parentSourcedId",
-    target: academicSessionsRecordSet,
-    getReferenceValues: (record) => optionalOneRosterCsvReference(record.parentSourcedId),
-  }),
-  defineReferenceRule({
-    source: orgsRecordSet,
-    field: "parentSourcedId",
-    target: orgsRecordSet,
-    getReferenceValues: (record) => optionalOneRosterCsvReference(record.parentSourcedId),
-  }),
-  defineReferenceRule({
-    source: coursesRecordSet,
-    field: "schoolYearSourcedId",
-    target: academicSessionsRecordSet,
-    getReferenceValues: (record) => optionalOneRosterCsvReference(record.schoolYearSourcedId),
-  }),
-  defineReferenceRule({
-    source: coursesRecordSet,
-    field: "orgSourcedId",
-    target: orgsRecordSet,
-    getReferenceValues: (record) => [record.orgSourcedId],
-  }),
-  defineReferenceRule({
-    source: classesRecordSet,
-    field: "courseSourcedId",
-    target: coursesRecordSet,
-    getReferenceValues: (record) => [record.courseSourcedId],
-  }),
-  defineReferenceRule({
-    source: classesRecordSet,
-    field: "schoolSourcedId",
-    target: orgsRecordSet,
-    getReferenceValues: (record) => [record.schoolSourcedId],
-  }),
-  defineReferenceRule({
-    source: classesRecordSet,
-    field: "termSourcedIds",
-    target: academicSessionsRecordSet,
-    getReferenceValues: (record) => record.termSourcedIds,
-  }),
-  defineReferenceRule({
-    source: usersRecordSet,
-    field: "agentSourcedIds",
-    target: usersRecordSet,
-    getReferenceValues: (record) => record.agentSourcedIds,
-  }),
-  defineReferenceRule({
-    source: usersRecordSet,
-    field: "primaryOrgSourcedId",
-    target: orgsRecordSet,
-    getReferenceValues: (record) => optionalOneRosterCsvReference(record.primaryOrgSourcedId),
-  }),
-  defineReferenceRule({
-    source: rolesRecordSet,
-    field: "userSourcedId",
-    target: usersRecordSet,
-    getReferenceValues: (record) => [record.userSourcedId],
-  }),
-  defineReferenceRule({
-    source: rolesRecordSet,
-    field: "orgSourcedId",
-    target: orgsRecordSet,
-    getReferenceValues: (record) => [record.orgSourcedId],
-  }),
-  defineReferenceRule({
-    source: rolesRecordSet,
-    field: "userProfileSourcedId",
-    target: userProfilesRecordSet,
-    getReferenceValues: (record) => optionalOneRosterCsvReference(record.userProfileSourcedId),
-  }),
-  defineReferenceRule({
-    source: enrollmentsRecordSet,
-    field: "classSourcedId",
-    target: classesRecordSet,
-    getReferenceValues: (record) => [record.classSourcedId],
-  }),
-  defineReferenceRule({
-    source: enrollmentsRecordSet,
-    field: "schoolSourcedId",
-    target: orgsRecordSet,
-    getReferenceValues: (record) => [record.schoolSourcedId],
-  }),
-  defineReferenceRule({
-    source: enrollmentsRecordSet,
-    field: "userSourcedId",
-    target: usersRecordSet,
-    getReferenceValues: (record) => [record.userSourcedId],
-  }),
-  // demographics.csv sourcedId must match a users.csv sourcedId (1:1 extension of user identity).
-  defineReferenceRule({
-    source: demographicsRecordSet,
-    field: "sourcedId",
-    target: usersRecordSet,
-    getReferenceValues: (record) => [record.sourcedId],
-  }),
-  defineReferenceRule({
-    source: userProfilesRecordSet,
-    field: "userSourcedId",
-    target: usersRecordSet,
-    getReferenceValues: (record) => [record.userSourcedId],
-  }),
-];
-
 /** Parse a OneRoster CSV ZIP archive and validate core rostering references. */
 export function parseAndValidateOneRosterCsvRosteringZip(
   bytes: Uint8Array,
-  options: OneRosterCsvPackageOptions & OneRosterCsvRosteringValidationOptions = {},
+  options: OneRosterCsvPackageOptions & OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedRosteringPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   const parsedPackage = parseOneRosterCsvRosteringZip(bytes, options);
 
@@ -237,7 +213,7 @@ export function parseAndValidateOneRosterCsvRosteringZip(
 /** Validate duplicate sourcedIds and core rostering references in a typed package. */
 export function validateOneRosterCsvRosteringPackage(
   packageValue: OneRosterCsvRosteringPackage,
-  options: OneRosterCsvRosteringValidationOptions = {},
+  options: OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedRosteringPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   const validation = collectOneRosterCsvRosteringValidation(packageValue, options);
 

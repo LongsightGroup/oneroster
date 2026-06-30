@@ -10,6 +10,11 @@ import type { OneRosterCsvRecordBase } from "./one-roster-csv-record-types.js";
 /** Controls which row lifecycles participate in reference validation. */
 export type OneRosterCsvReferenceValidationMode = "bulkOnly" | "allRows";
 
+/** Options for semantic OneRoster CSV reference validation. */
+export type OneRosterCsvReferenceValidationOptions = {
+  readonly referenceMode?: OneRosterCsvReferenceValidationMode;
+};
+
 /** Base context required by the generic OneRoster CSV reference validator. */
 export type OneRosterCsvReferenceValidationContext<TPackage> = {
   readonly packageValue: TPackage;

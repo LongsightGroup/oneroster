@@ -11,6 +11,7 @@ import {
   parseStringListField,
   parseVocabularyField,
 } from "./one-roster-csv-record-fields.js";
+import { hasNewRowDiagnostics } from "./one-roster-csv-record-row.js";
 import {
   learningObjectiveSourceValues,
   resultScoreStatusValues,
@@ -36,7 +37,7 @@ export function parseCategoryRecord(
   const weight = parseIntegerField(context, "weight", "optional");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     title === undefined
   ) {
@@ -68,7 +69,7 @@ export function parseLineItemRecord(
   const schoolSourcedId = parseGuidField(context, "schoolSourcedId", "required");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     title === undefined ||
     assignDate === undefined ||
@@ -122,7 +123,7 @@ export function parseResultRecord(
   const missing = parseBooleanField(context, "missing", "optional");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     lineItemSourcedId === undefined ||
     studentSourcedId === undefined ||
@@ -163,7 +164,7 @@ export function parseScoreScaleRecord(
   const scoreScaleValue = parseStringListField(context, "scoreScaleValue", "required");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     title === undefined ||
     type === undefined ||
@@ -203,7 +204,7 @@ export function parseLineItemLearningObjectiveIdRecord(
   const learningObjectiveId = parseRequiredStringField(context, "learningObjectiveId");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     lineItemSourcedId === undefined ||
     source === undefined ||
@@ -231,7 +232,7 @@ export function parseLineItemScoreScaleRecord(
   const scoreScaleSourcedId = parseGuidField(context, "scoreScaleSourcedId", "required");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     lineItemSourcedId === undefined ||
     scoreScaleSourcedId === undefined
@@ -266,7 +267,7 @@ export function parseResultLearningObjectiveIdRecord(
   const textScore = parseOptionalStringField(context, "textScore");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     resultSourcedId === undefined ||
     source === undefined ||
@@ -296,7 +297,7 @@ export function parseResultScoreScaleRecord(
   const scoreScaleSourcedId = parseGuidField(context, "scoreScaleSourcedId", "required");
 
   if (
-    hasNewDiagnostics(context, diagnosticStart) ||
+    hasNewRowDiagnostics(context, diagnosticStart) ||
     commonFields === undefined ||
     resultSourcedId === undefined ||
     scoreScaleSourcedId === undefined
@@ -310,11 +311,4 @@ export function parseResultScoreScaleRecord(
     resultSourcedId,
     scoreScaleSourcedId,
   };
-}
-
-function hasNewDiagnostics(
-  context: OneRosterCsvRecordRowContext,
-  diagnosticStart: number,
-): boolean {
-  return context.diagnostics.length > diagnosticStart;
 }
