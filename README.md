@@ -6,6 +6,12 @@ The first production surface is parsing, validating, and normalizing OneRoster C
 
 Product-specific provisioning remains outside the package.
 
+## Install
+
+```sh
+pnpm add @longsightgroup/oneroster
+```
+
 ## Spec Basis
 
 OneRoster 1.2 is organized by service and transport binding:
@@ -44,6 +50,71 @@ OpenAPI descriptions and external schema libraries may be used as references or 
 Runtime dependency policy: zero by default, with one deliberate exception: ZIP container handling uses `fflate` behind the package's own `ZipEntry` and diagnostic contracts. CSV parsing is owned by this package so OneRoster-specific diagnostics and parser restrictions stay under our control.
 
 The core package should remain portable across npm ESM, Workers, Hono, Deno consumers, and browser-compatible bundlers.
+
+## CSV Support Status
+
+| Area                | Status                                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| ZIP/package intake  | Implemented for root-level OneRoster CSV 1.2 packages with strict `manifest.csv` reconciliation.                                       |
+| CSV parsing/writing | Implemented with owned RFC 4180-compatible parsing/serialization and OneRoster-specific diagnostics.                                   |
+| Rostering CSV       | Implemented for `academicSessions`, `orgs`, `courses`, `classes`, `users`, `roles`, `enrollments`, `demographics`, and `userProfiles`. |
+| Gradebook CSV       | Implemented for categories, line items, results, score scales, and gradebook link tables.                                              |
+| Resources CSV       | Implemented for resources, class resources, course resources, and user resources.                                                      |
+| Semantic validation | Implemented for direct references, duplicate sourced IDs, selected full-package constraints, and safe diagnostics.                     |
+| CSV writing         | Implemented for raw packages and typed rostering, gradebook, resources, and full packages.                                             |
+| REST and OpenAPI    | Planned later; no REST runtime or generated SDK is part of the current package surface.                                                |
+
+## CSV Usage
+
+Parse and validate a full OneRoster CSV ZIP package:
+
+```ts
+import { parseAndValidateOneRosterCsvFullZip } from "@longsightgroup/oneroster";
+
+const result = parseAndValidateOneRosterCsvFullZip(bytes, {
+  referenceMode: "allRows",
+});
+
+if (result._tag === "err") {
+  for (const diagnostic of result.error) {
+    console.error(diagnostic.code, diagnostic.fileName, diagnostic.rowNumber, diagnostic.field);
+  }
+} else {
+  console.log(result.value.fullPackage.rosteringPackage.users.length);
+}
+```
+
+Parse only the raw package boundary when a caller wants manifest and table normalization before typed rows:
+
+```ts
+import { parseOneRosterCsvZip } from "@longsightgroup/oneroster";
+
+const result = parseOneRosterCsvZip(bytes);
+
+if (result._tag === "ok") {
+  console.log(result.value.manifest.fileModes["users.csv"]);
+}
+```
+
+Write a validated typed package back to normalized CSV ZIP bytes:
+
+```ts
+import {
+  parseAndValidateOneRosterCsvFullZip,
+  writeOneRosterCsvFullZip,
+} from "@longsightgroup/oneroster";
+
+const parsed = parseAndValidateOneRosterCsvFullZip(bytes);
+
+if (parsed._tag === "ok") {
+  const written = writeOneRosterCsvFullZip(parsed.value.fullPackage);
+  if (written._tag === "ok") {
+    await uploadZip(written.value);
+  }
+}
+```
+
+Metadata extension columns are preserved as `metadata.*` record fields. Writers append metadata columns after spec-defined headers and sort metadata headers deterministically. Diagnostics use stable codes and safe structural context; they do not include raw row payloads such as usernames, passwords, comments, scores, or private sourced IDs.
 
 ## Scripts
 
