@@ -27,7 +27,10 @@ import {
   type OneRosterCsvReferenceValidationContext,
 } from "./one-roster-csv-record-reference-validation.js";
 import { rosteringIndexTargets } from "./one-roster-csv-rostering-reference-targets.js";
-import type { OneRosterCsvValidatedRosteringPackage } from "./one-roster-csv-rostering-validation.js";
+import type {
+  OneRosterCsvRosteringValidationState,
+  OneRosterCsvValidatedRosteringPackage,
+} from "./one-roster-csv-rostering-validation.js";
 import type { OneRosterCsvRosteringReferenceIndexes } from "./one-roster-csv-rostering-types.js";
 import { err, ok, type Result } from "./result.js";
 
@@ -39,6 +42,13 @@ export type OneRosterCsvValidatedResourcesPackage = {
   readonly resourcesPackage: OneRosterCsvResourcesPackage;
   readonly rosteringValidation: OneRosterCsvValidatedRosteringPackage;
   readonly indexes: OneRosterCsvResourcesReferenceIndexes;
+};
+
+/** Accumulated resources validation state, including indexes even when diagnostics exist. */
+export type OneRosterCsvResourcesValidationState = {
+  readonly rosteringValidation: OneRosterCsvRosteringValidationState;
+  readonly indexes: OneRosterCsvResourcesReferenceIndexes;
+  readonly diagnostics: readonly OneRosterCsvPackageDiagnostic[];
 };
 
 type ResourcesReferenceValidationContext =
@@ -130,31 +140,7 @@ export function validateOneRosterCsvResourcesPackage(
   packageValue: OneRosterCsvResourcesPackage,
   options: OneRosterCsvReferenceValidationOptions = {},
 ): Result<OneRosterCsvValidatedResourcesPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const validation = collectProfileReferenceValidation({
-    rosteringPackage: packageValue.rosteringPackage,
-    packageValue,
-    options,
-    buildIndexes: buildResourcesReferenceIndexes,
-    buildContext: ({
-      packageValue: currentPackage,
-      rosteringValidation,
-      indexes,
-      diagnostics,
-      referenceMode,
-    }) => ({
-      packageValue: currentPackage,
-      rosteringIndexes: rosteringValidation.indexes,
-      indexes,
-      diagnostics,
-      referenceMode,
-      isTargetFilePresent: (targetFileName) =>
-        isManifestDataFilePresent(
-          currentPackage.rosteringPackage.rawPackage.manifest.fileModes,
-          targetFileName,
-        ),
-    }),
-    rules: RESOURCES_REFERENCE_RULES,
-  });
+  const validation = collectOneRosterCsvResourcesValidation(packageValue, options);
 
   if (validation.diagnostics.length > 0) {
     return err(validation.diagnostics);
@@ -167,5 +153,41 @@ export function validateOneRosterCsvResourcesPackage(
       indexes: validation.rosteringValidation.indexes,
     },
     indexes: validation.indexes,
+  });
+}
+
+/** Collect duplicate and reference validation diagnostics for typed resources records. */
+export function collectOneRosterCsvResourcesValidation(
+  packageValue: OneRosterCsvResourcesPackage,
+  options: OneRosterCsvReferenceValidationOptions = {},
+  rosteringValidation?: OneRosterCsvRosteringValidationState,
+  includeRosteringDiagnostics = true,
+): OneRosterCsvResourcesValidationState {
+  return collectProfileReferenceValidation({
+    rosteringPackage: packageValue.rosteringPackage,
+    packageValue,
+    options,
+    rosteringValidation,
+    includeRosteringDiagnostics,
+    buildIndexes: buildResourcesReferenceIndexes,
+    buildContext: ({
+      packageValue: currentPackage,
+      rosteringValidation: currentRosteringValidation,
+      indexes,
+      diagnostics,
+      referenceMode,
+    }) => ({
+      packageValue: currentPackage,
+      rosteringIndexes: currentRosteringValidation.indexes,
+      indexes,
+      diagnostics,
+      referenceMode,
+      isTargetFilePresent: (targetFileName) =>
+        isManifestDataFilePresent(
+          currentPackage.rosteringPackage.rawPackage.manifest.fileModes,
+          targetFileName,
+        ),
+    }),
+    rules: RESOURCES_REFERENCE_RULES,
   });
 }

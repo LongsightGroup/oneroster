@@ -98,6 +98,16 @@ export type {
   OneRosterCsvResourcesValidationOptions,
   OneRosterCsvValidatedResourcesPackage,
 } from "./one-roster-csv-resources-validation.js";
+export { parseOneRosterCsvFullPackage, parseOneRosterCsvFullZip } from "./one-roster-csv-full.js";
+export {
+  parseAndValidateOneRosterCsvFullZip,
+  validateOneRosterCsvFullPackage,
+} from "./one-roster-csv-full-validation.js";
+export type { OneRosterCsvFullPackage } from "./one-roster-csv-full.js";
+export type {
+  OneRosterCsvFullValidationOptions,
+  OneRosterCsvValidatedFullPackage,
+} from "./one-roster-csv-full-validation.js";
 export {
   parseOneRosterCsvRosteringPackage,
   parseOneRosterCsvRosteringZip,

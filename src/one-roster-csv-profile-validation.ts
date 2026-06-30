@@ -14,6 +14,13 @@ import type { OneRosterCsvRosteringPackage } from "./one-roster-csv-rostering-ty
 
 export type { OneRosterCsvReferenceValidationOptions } from "./one-roster-csv-record-reference-validation.js";
 
+/** Optional shared rostering validation state for composed profile validators. */
+export type OneRosterCsvProfileValidationCollectionOptions = {
+  readonly referenceOptions?: OneRosterCsvReferenceValidationOptions;
+  readonly rosteringValidation?: OneRosterCsvRosteringValidationState | undefined;
+  readonly includeRosteringDiagnostics?: boolean;
+};
+
 /** Accumulated profile validation state, including rostering and profile indexes. */
 export type OneRosterCsvProfileValidationState<TIndexes> = {
   readonly rosteringValidation: OneRosterCsvRosteringValidationState;
@@ -30,6 +37,8 @@ export function collectProfileReferenceValidation<
   readonly rosteringPackage: OneRosterCsvRosteringPackage;
   readonly packageValue: TPackage;
   readonly options?: OneRosterCsvReferenceValidationOptions;
+  readonly rosteringValidation?: OneRosterCsvRosteringValidationState | undefined;
+  readonly includeRosteringDiagnostics?: boolean;
   readonly buildIndexes: (
     packageValue: TPackage,
     diagnostics: OneRosterCsvPackageDiagnostic[],
@@ -43,11 +52,11 @@ export function collectProfileReferenceValidation<
   }) => TContext;
   readonly rules: readonly OneRosterCsvReferenceRule<TContext>[];
 }): OneRosterCsvProfileValidationState<TIndexes> {
-  const rosteringValidation = collectOneRosterCsvRosteringValidation(
-    input.rosteringPackage,
-    input.options ?? {},
-  );
-  const diagnostics: OneRosterCsvPackageDiagnostic[] = [...rosteringValidation.diagnostics];
+  const rosteringValidation =
+    input.rosteringValidation ??
+    collectOneRosterCsvRosteringValidation(input.rosteringPackage, input.options ?? {});
+  const diagnostics: OneRosterCsvPackageDiagnostic[] =
+    input.includeRosteringDiagnostics === false ? [] : [...rosteringValidation.diagnostics];
   const indexes = input.buildIndexes(input.packageValue, diagnostics);
   const referenceMode = input.options?.referenceMode ?? "bulkOnly";
   const context = input.buildContext({
