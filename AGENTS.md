@@ -76,3 +76,19 @@ This repository is intended to become the best TypeScript library for faithful, 
 - Run `pnpm run build` for package-output changes.
 - Do not weaken compiler, lint, or formatter settings to admit new code.
 - If a tool exposes a real portability or TypeScript issue, fix the code or isolate the compatibility boundary.
+
+## Releasing
+
+Releases are published to npm when a semver git tag is pushed to GitHub.
+
+1. Bump `version` in `package.json` on `main` and merge the change.
+2. Create and push a matching tag (the `v` prefix is required):
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The [Release workflow](.github/workflows/release.yml) verifies the tag matches `package.json`, runs `pnpm run check`, builds `dist/`, publishes `@longsightgroup/oneroster` to npm with [provenance](https://docs.npmjs.com/generating-provenance-statements), and creates a GitHub Release.
+
+Configure an `NPM_TOKEN` repository secret with permission to publish the `@longsightgroup` scope. npm [trusted publishing](https://docs.npmjs.com/trusted-publishers) for this GitHub repository can be used instead of a long-lived token when available.
