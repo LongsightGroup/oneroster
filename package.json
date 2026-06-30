@@ -2,7 +2,7 @@
   "name": "oneroster-csv-normalizer",
   "version": "0.0.0",
   "description": "Parse, validate, and normalize OneRoster CSV ZIP packages into typed records and diagnostics.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "files": [
     "dist",
     "README.md"
