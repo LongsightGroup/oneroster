@@ -6,9 +6,7 @@ import {
   writeOneRosterCsvPackageEntries,
   writeOneRosterCsvPackageZip,
   type OneRosterCsvPackage,
-  type OneRosterCsvPackageWriteDiagnostic,
   type OneRosterManifestFileModes,
-  type Result,
 } from "../src/index.js";
 import {
   csvDocument,
@@ -16,6 +14,7 @@ import {
   manifestCsv,
   zipPackage,
 } from "./fixtures/one-roster-csv-package-fixtures.js";
+import { expectPackageWriteErr, expectPackageWriteOk } from "./fixtures/result-assertions.js";
 
 describe("writeOneRosterCsvPackageEntries", () => {
   it("writes a manifest-only package", () => {
@@ -89,25 +88,3 @@ describe("writeOneRosterCsvPackageEntries", () => {
     );
   });
 });
-
-function expectPackageWriteOk<T>(
-  result: Result<T, readonly OneRosterCsvPackageWriteDiagnostic[]>,
-): T {
-  if (result._tag === "err") {
-    throw new Error(
-      `Expected package write to succeed, got ${result.error[0]?.code ?? "unknown error"}.`,
-    );
-  }
-
-  return result.value;
-}
-
-function expectPackageWriteErr<T>(
-  result: Result<T, readonly OneRosterCsvPackageWriteDiagnostic[]>,
-): readonly OneRosterCsvPackageWriteDiagnostic[] {
-  if (result._tag === "ok") {
-    throw new Error("Expected package write to fail.");
-  }
-
-  return result.error;
-}

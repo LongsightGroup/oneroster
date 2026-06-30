@@ -1,3 +1,7 @@
+import {
+  conformanceLifecycleFields,
+  type ConformanceLifecycleMode,
+} from "./conformance-lifecycle.js";
 import { manifestCsv, zipPackage } from "./one-roster-csv-package-fixtures.js";
 import { rosteringModes, validBulkGraphFiles } from "./one-roster-csv-rostering-packages.js";
 import {
@@ -38,21 +42,25 @@ export function gradebookAndRosteringModes(mode: "bulk" | "delta"): ReadonlyMap<
   return new Map([...rosteringModes(mode), ...gradebookModes(mode)]);
 }
 
-/** Build a minimal valid bulk typed gradebook package with one record per file. */
-export function validBulkGradebookFiles(): Readonly<Record<string, string>> {
+/** Build a minimal valid typed gradebook package with one record per file. */
+export function validBulkGradebookFiles(
+  mode: ConformanceLifecycleMode = "bulk",
+): Readonly<Record<string, string>> {
+  const lifecycle = conformanceLifecycleFields(mode);
+
   return {
-    "categories.csv": categoriesCsv([categoryRow()]),
-    "lineItems.csv": lineItemsCsv([lineItemRow()]),
-    "results.csv": resultsCsv([resultRow()]),
-    "scoreScales.csv": scoreScalesCsv([scoreScaleRow()]),
+    "categories.csv": categoriesCsv([categoryRow(lifecycle)]),
+    "lineItems.csv": lineItemsCsv([lineItemRow(lifecycle)]),
+    "results.csv": resultsCsv([resultRow(lifecycle)]),
+    "scoreScales.csv": scoreScalesCsv([scoreScaleRow(lifecycle)]),
     "lineItemLearningObjectiveIds.csv": lineItemLearningObjectiveIdsCsv([
-      lineItemLearningObjectiveIdRow(),
+      lineItemLearningObjectiveIdRow(lifecycle),
     ]),
-    "lineItemScoreScales.csv": lineItemScoreScalesCsv([lineItemScoreScaleRow()]),
+    "lineItemScoreScales.csv": lineItemScoreScalesCsv([lineItemScoreScaleRow(lifecycle)]),
     "resultLearningObjectiveIds.csv": resultLearningObjectiveIdsCsv([
-      resultLearningObjectiveIdRow(),
+      resultLearningObjectiveIdRow(lifecycle),
     ]),
-    "resultScoreScales.csv": resultScoreScalesCsv([resultScoreScaleRow()]),
+    "resultScoreScales.csv": resultScoreScalesCsv([resultScoreScaleRow(lifecycle)]),
   };
 }
 

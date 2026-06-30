@@ -1,3 +1,7 @@
+import {
+  conformanceLifecycleFields,
+  type ConformanceLifecycleMode,
+} from "./conformance-lifecycle.js";
 import { manifestCsv, zipPackage } from "./one-roster-csv-package-fixtures.js";
 import {
   academicSessionRow,
@@ -92,38 +96,57 @@ export function validBulkRosteringFiles(): Readonly<Record<string, string>> {
   };
 }
 
-/** Build a connected bulk rostering graph for reference validation tests. */
-export function validBulkGraphFiles(): Readonly<Record<string, string>> {
+/** Build a connected rostering graph for reference validation and conformance tests. */
+export function validBulkGraphFiles(
+  mode: ConformanceLifecycleMode = "bulk",
+): Readonly<Record<string, string>> {
+  const lifecycle = conformanceLifecycleFields(mode);
+
   return {
     "academicSessions.csv": academicSessionsCsv([
-      academicSessionRow({ sourcedId: "as-parent", title: "School Year" }),
+      academicSessionRow({ sourcedId: "as-parent", title: "School Year", ...lifecycle }),
       academicSessionRow({
         sourcedId: "as-1",
         title: "Fall Term",
         type: "term",
         parentSourcedId: "as-parent",
+        ...lifecycle,
       }),
     ]),
     "orgs.csv": orgsCsv([
-      orgRow({ sourcedId: "org-root", name: "District", type: "district" }),
-      orgRow({ sourcedId: "org-1", name: "North School", parentSourcedId: "org-root" }),
+      orgRow({ sourcedId: "org-root", name: "District", type: "district", ...lifecycle }),
+      orgRow({
+        sourcedId: "org-1",
+        name: "North School",
+        parentSourcedId: "org-root",
+        ...lifecycle,
+      }),
     ]),
-    "courses.csv": coursesCsv([courseRow({ sourcedId: "course-1", orgSourcedId: "org-1" })]),
+    "courses.csv": coursesCsv([
+      courseRow({ sourcedId: "course-1", orgSourcedId: "org-1", ...lifecycle }),
+    ]),
     "classes.csv": classesCsv([
       classRow({
         sourcedId: "class-1",
         courseSourcedId: "course-1",
         schoolSourcedId: "org-1",
         termSourcedIds: "as-1",
+        ...lifecycle,
       }),
     ]),
     "users.csv": usersCsv([
-      userRow({ sourcedId: "user-agent", username: "user-agent", primaryOrgSourcedId: "org-1" }),
+      userRow({
+        sourcedId: "user-agent",
+        username: "user-agent",
+        primaryOrgSourcedId: "org-1",
+        ...lifecycle,
+      }),
       userRow({
         sourcedId: "user-1",
         username: "user-1",
         agentSourcedIds: "user-agent",
         primaryOrgSourcedId: "org-1",
+        ...lifecycle,
       }),
     ]),
     "roles.csv": rolesCsv([
@@ -131,12 +154,14 @@ export function validBulkGraphFiles(): Readonly<Record<string, string>> {
         sourcedId: "role-agent",
         userSourcedId: "user-agent",
         orgSourcedId: "org-1",
+        ...lifecycle,
       }),
       roleRow({
         sourcedId: "role-1",
         userSourcedId: "user-1",
         orgSourcedId: "org-1",
         userProfileSourcedId: "profile-1",
+        ...lifecycle,
       }),
     ]),
     "enrollments.csv": enrollmentsCsv([
@@ -145,11 +170,14 @@ export function validBulkGraphFiles(): Readonly<Record<string, string>> {
         classSourcedId: "class-1",
         schoolSourcedId: "org-1",
         userSourcedId: "user-1",
+        ...lifecycle,
       }),
     ]),
-    "demographics.csv": demographicsCsv([demographicsRow({ sourcedId: "user-1", sex: "female" })]),
+    "demographics.csv": demographicsCsv([
+      demographicsRow({ sourcedId: "user-1", sex: "female", ...lifecycle }),
+    ]),
     "userProfiles.csv": userProfilesCsv([
-      userProfileRow({ sourcedId: "profile-1", userSourcedId: "user-1" }),
+      userProfileRow({ sourcedId: "profile-1", userSourcedId: "user-1", ...lifecycle }),
     ]),
   };
 }

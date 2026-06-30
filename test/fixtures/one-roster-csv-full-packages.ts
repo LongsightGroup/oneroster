@@ -21,11 +21,13 @@ export function validBulkFullGraphZip(): Uint8Array {
   });
 }
 
-/** Build complete bulk rostering, gradebook, and resources files. */
-export function validBulkFullGraphFiles(): Readonly<Record<string, string>> {
+/** Build complete rostering, gradebook, and resources files. */
+export function validBulkFullGraphFiles(
+  mode: "bulk" | "delta" = "bulk",
+): Readonly<Record<string, string>> {
   return {
-    ...validBulkGraphFiles(),
-    ...validBulkGradebookFiles(),
-    ...validBulkResourcesFiles(),
+    ...validBulkGraphFiles(mode),
+    ...validBulkGradebookFiles(mode),
+    ...validBulkResourcesFiles(mode),
   };
 }

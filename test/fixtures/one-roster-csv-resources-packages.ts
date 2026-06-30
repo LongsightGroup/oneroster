@@ -1,3 +1,7 @@
+import {
+  conformanceLifecycleFields,
+  type ConformanceLifecycleMode,
+} from "./conformance-lifecycle.js";
 import { manifestCsv, zipPackage } from "./one-roster-csv-package-fixtures.js";
 import { rosteringModes, validBulkGraphFiles } from "./one-roster-csv-rostering-packages.js";
 import {
@@ -26,13 +30,17 @@ export function resourcesAndRosteringModes(mode: "bulk" | "delta"): ReadonlyMap<
   return new Map([...rosteringModes(mode), ...resourcesModes(mode)]);
 }
 
-/** Build a minimal valid bulk typed resources package with one record per file. */
-export function validBulkResourcesFiles(): Readonly<Record<string, string>> {
+/** Build a minimal valid typed resources package with one record per file. */
+export function validBulkResourcesFiles(
+  mode: ConformanceLifecycleMode = "bulk",
+): Readonly<Record<string, string>> {
+  const lifecycle = conformanceLifecycleFields(mode);
+
   return {
-    "resources.csv": resourcesCsv([resourceRow()]),
-    "classResources.csv": classResourcesCsv([classResourceRow()]),
-    "courseResources.csv": courseResourcesCsv([courseResourceRow()]),
-    "userResources.csv": userResourcesCsv([userResourceRow()]),
+    "resources.csv": resourcesCsv([resourceRow(lifecycle)]),
+    "classResources.csv": classResourcesCsv([classResourceRow(lifecycle)]),
+    "courseResources.csv": courseResourcesCsv([courseResourceRow(lifecycle)]),
+    "userResources.csv": userResourcesCsv([userResourceRow(lifecycle)]),
   };
 }
 
