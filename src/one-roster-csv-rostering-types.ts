@@ -1,4 +1,5 @@
 import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
+import type { OneRosterManifest } from "./one-roster-csv-manifest.js";
 import type { OneRosterDate, OneRosterGuid, OneRosterYear } from "./one-roster-csv-primitive.js";
 import type {
   OneRosterCsvRecordBase,
@@ -209,6 +210,7 @@ export type OneRosterUserProfileRecord = OneRosterCsvRosteringRecordBase & {
 /** Typed OneRoster CSV rostering package over the raw normalized package. */
 export type OneRosterCsvRosteringPackage = {
   readonly rawPackage: OneRosterCsvPackage;
+  readonly manifest: OneRosterManifest;
   readonly academicSessions: ReadonlyArray<OneRosterAcademicSessionRecord>;
   readonly orgs: ReadonlyArray<OneRosterOrgRecord>;
   readonly courses: ReadonlyArray<OneRosterCourseRecord>;

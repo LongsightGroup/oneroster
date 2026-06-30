@@ -92,15 +92,19 @@ function collectOneRosterCsvFullValidation(
   );
   const gradebookValidation = collectOneRosterCsvGradebookValidation(
     packageValue.gradebookPackage,
-    options,
-    rosteringValidation,
-    false,
+    {
+      referenceOptions: options,
+      rosteringValidation,
+      suppressRosteringDiagnostics: true,
+    },
   );
   const resourcesValidation = collectOneRosterCsvResourcesValidation(
     packageValue.resourcesPackage,
-    options,
-    rosteringValidation,
-    false,
+    {
+      referenceOptions: options,
+      rosteringValidation,
+      suppressRosteringDiagnostics: true,
+    },
   );
 
   return {

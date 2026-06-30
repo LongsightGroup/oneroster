@@ -1,9 +1,10 @@
 import { parseOneRosterCsvRosteringZip } from "./one-roster-csv-rostering.js";
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
-import { isManifestDataFilePresent } from "./one-roster-csv-manifest.js";
+import { createProfileManifestPresenceChecker } from "./one-roster-csv-profile-reference-context.js";
 import {
   defineOneRosterCsvReferenceRule,
+  oneRosterCsvRecordSetTarget,
   optionalOneRosterCsvReference,
   validateOneRosterCsvReferences,
   type OneRosterCsvReferenceRule,
@@ -60,10 +61,7 @@ type ReferenceRule = OneRosterCsvReferenceRule<ReferenceValidationContext>;
 function rosteringRecordSetTarget<TRecord extends OneRosterCsvRosteringRecordBase>(
   recordSet: RosteringRecordSet<TRecord>,
 ): OneRosterCsvReferenceTarget<ReferenceValidationContext> {
-  return {
-    fileName: recordSet.fileName,
-    getIndex: (context) => recordSet.getIndex(context.indexes),
-  };
+  return oneRosterCsvRecordSetTarget(recordSet, (context) => context.indexes);
 }
 
 const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
@@ -184,8 +182,7 @@ export function collectOneRosterCsvRosteringValidation(
     indexes,
     diagnostics,
     referenceMode: options.referenceMode ?? "bulkOnly",
-    isTargetFilePresent: (targetFileName) =>
-      isManifestDataFilePresent(packageValue.rawPackage.manifest.fileModes, targetFileName),
+    isTargetFilePresent: createProfileManifestPresenceChecker(packageValue),
   };
 
   validateOneRosterCsvReferences(ROSTERING_REFERENCE_RULES, context);

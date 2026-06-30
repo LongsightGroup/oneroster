@@ -5,192 +5,27 @@ import {
 import {
   parseOneRosterBooleanToken,
   parseOneRosterDate,
-  parseOneRosterDateTime,
   parseOneRosterFloat,
   parseOneRosterGuid,
   parseOneRosterInteger,
   parseOneRosterYear,
   type OneRosterDate,
-  type OneRosterDateTime,
   type OneRosterFloat,
   type OneRosterGuid,
   type OneRosterInteger,
   type OneRosterYear,
 } from "./one-roster-csv-primitive.js";
-import type {
-  OneRosterCsvCommonRecordFields,
-  OneRosterCsvRecordRowContext,
-} from "./one-roster-csv-record-context.js";
+import type { OneRosterCsvRecordRowContext } from "./one-roster-csv-record-context.js";
+import {
+  readOneRosterCsvRecordCell,
+  readPossiblyRequiredOneRosterCsvRecordCell,
+  splitOneRosterCsvRecordList,
+} from "./one-roster-csv-record-cell-access.js";
 import {
   formatVocabularyExpected,
   type OneRosterCsvFieldRequiredness,
 } from "./one-roster-csv-record-schema.js";
-import type {
-  OneRosterCsvDeltaStatus,
-  OneRosterCsvRecordMetadata,
-  OneRosterCsvRowLifecycle,
-  OneRosterExtensionVocabularyToken,
-} from "./one-roster-csv-record-types.js";
-
-/** Parse common sourcedId, lifecycle, and metadata fields for a typed OneRoster row. */
-export function parseCommonRecordFields(
-  context: OneRosterCsvRecordRowContext,
-): OneRosterCsvCommonRecordFields | undefined {
-  const diagnosticStart = context.diagnostics.length;
-  const sourcedId = parseGuidField(context, "sourcedId", "required");
-  const lifecycle = parseLifecycle(context);
-
-  if (
-    context.diagnostics.length > diagnosticStart ||
-    sourcedId === undefined ||
-    lifecycle === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    rowNumber: context.row.rowNumber,
-    sourcedId,
-    lifecycle,
-    metadata: extractMetadata(context),
-  };
-}
-
-function parseLifecycle(
-  context: OneRosterCsvRecordRowContext,
-): OneRosterCsvRowLifecycle | undefined {
-  const status = readCell(context, "status");
-  const dateLastModified = readCell(context, "dateLastModified");
-
-  if (status === undefined || dateLastModified === undefined) {
-    return undefined;
-  }
-
-  if (context.table.manifestMode === "bulk") {
-    let valid = true;
-
-    if (status !== "") {
-      valid = false;
-      context.diagnostics.push(
-        packageDiagnostic({
-          code: "row.field_forbidden_in_bulk",
-          message: "Bulk OneRoster CSV rows must leave status blank.",
-          fileName: context.table.fileName,
-          rowNumber: context.row.rowNumber,
-          field: "status",
-          expected: "blank",
-          actual: "present",
-        }),
-      );
-    }
-
-    if (dateLastModified !== "") {
-      valid = false;
-      context.diagnostics.push(
-        packageDiagnostic({
-          code: "row.field_forbidden_in_bulk",
-          message: "Bulk OneRoster CSV rows must leave dateLastModified blank.",
-          fileName: context.table.fileName,
-          rowNumber: context.row.rowNumber,
-          field: "dateLastModified",
-          expected: "blank",
-          actual: "present",
-        }),
-      );
-    }
-
-    return valid ? { mode: "bulk" } : undefined;
-  }
-
-  const parsedStatus = parseDeltaStatus(context, status);
-  const parsedDateLastModified = parseDeltaDateLastModified(context, dateLastModified);
-
-  if (parsedStatus === undefined || parsedDateLastModified === undefined) {
-    return undefined;
-  }
-
-  return {
-    mode: "delta",
-    status: parsedStatus,
-    dateLastModified: parsedDateLastModified,
-  };
-}
-
-function parseDeltaStatus(
-  context: OneRosterCsvRecordRowContext,
-  value: string,
-): OneRosterCsvDeltaStatus | undefined {
-  if (value === "") {
-    context.diagnostics.push(
-      packageDiagnostic({
-        code: "row.field_required_in_delta",
-        message: "Delta OneRoster CSV rows must include status.",
-        fileName: context.table.fileName,
-        rowNumber: context.row.rowNumber,
-        field: "status",
-        expected: "active|tobedeleted",
-        actual: "empty",
-      }),
-    );
-    return undefined;
-  }
-
-  if (value === "active" || value === "tobedeleted") {
-    return value;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.invalid_enum",
-      message: "Delta OneRoster CSV status must be active or tobedeleted.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field: "status",
-      expected: "active|tobedeleted",
-      actual: "invalid value",
-    }),
-  );
-  return undefined;
-}
-
-function parseDeltaDateLastModified(
-  context: OneRosterCsvRecordRowContext,
-  value: string,
-): OneRosterDateTime | undefined {
-  if (value === "") {
-    context.diagnostics.push(
-      packageDiagnostic({
-        code: "row.field_required_in_delta",
-        message: "Delta OneRoster CSV rows must include dateLastModified.",
-        fileName: context.table.fileName,
-        rowNumber: context.row.rowNumber,
-        field: "dateLastModified",
-        expected: "YYYY-MM-DDTHH:MM:SS.sssZ",
-        actual: "empty",
-      }),
-    );
-    return undefined;
-  }
-
-  const dateTime = parseOneRosterDateTime(value);
-
-  if (dateTime !== undefined) {
-    return dateTime;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.invalid_datetime",
-      message: "OneRoster DateTime values must match YYYY-MM-DDTHH:MM:SS.sssZ.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field: "dateLastModified",
-      expected: "YYYY-MM-DDTHH:MM:SS.sssZ",
-      actual: "invalid value",
-    }),
-  );
-  return undefined;
-}
+import type { OneRosterExtensionVocabularyToken } from "./one-roster-csv-record-types.js";
 
 /** Parse a OneRoster GUID field with requiredness diagnostics. */
 export function parseGuidField(
@@ -294,7 +129,7 @@ export function parseVocabularyField<TValue extends string>(
   allowedValues: readonly TValue[],
   allowExtension: boolean,
 ): TValue | OneRosterExtensionVocabularyToken | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
+  const value = readPossiblyRequiredOneRosterCsvRecordCell(context, field, requiredness);
 
   if (value === undefined || value === "") {
     return undefined;
@@ -388,7 +223,7 @@ export function parseRequiredStringField(
   context: OneRosterCsvRecordRowContext,
   field: string,
 ): string | undefined {
-  return readPossiblyRequiredCell(context, field, "required");
+  return readPossiblyRequiredOneRosterCsvRecordCell(context, field, "required");
 }
 
 /** Parse an optional string field, normalizing blank cells to undefined. */
@@ -396,7 +231,7 @@ export function parseOptionalStringField(
   context: OneRosterCsvRecordRowContext,
   field: string,
 ): string | undefined {
-  const value = readCell(context, field);
+  const value = readOneRosterCsvRecordCell(context, field);
 
   if (value === undefined || value === "") {
     return undefined;
@@ -411,13 +246,13 @@ export function parseStringListField(
   field: string,
   requiredness: OneRosterCsvFieldRequiredness,
 ): ReadonlyArray<string> | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
+  const value = readPossiblyRequiredOneRosterCsvRecordCell(context, field, requiredness);
 
   if (value === undefined) {
     return undefined;
   }
 
-  return splitOneRosterList(context, field, value, requiredness);
+  return splitOneRosterCsvRecordList(context, field, value, requiredness);
 }
 
 /** Parse a comma-delimited OneRoster GUID list field. */
@@ -460,55 +295,6 @@ export function parseGuidListField(
   return valid ? guids : undefined;
 }
 
-function splitOneRosterList(
-  context: OneRosterCsvRecordRowContext,
-  field: string,
-  value: string,
-  requiredness: OneRosterCsvFieldRequiredness,
-): ReadonlyArray<string> | undefined {
-  if (value === "") {
-    if (requiredness === "required") {
-      context.diagnostics.push(
-        packageDiagnostic({
-          code: "row.missing_required_value",
-          message: "OneRoster required fields must not be blank.",
-          fileName: context.table.fileName,
-          rowNumber: context.row.rowNumber,
-          field,
-          expected: "non-empty value",
-          actual: "empty",
-        }),
-      );
-      return undefined;
-    }
-
-    return [];
-  }
-
-  const values = value.split(",");
-
-  for (const item of values) {
-    if (item !== "") {
-      continue;
-    }
-
-    context.diagnostics.push(
-      packageDiagnostic({
-        code: "row.invalid_list",
-        message: "OneRoster list fields must not contain empty list items.",
-        fileName: context.table.fileName,
-        rowNumber: context.row.rowNumber,
-        field,
-        expected: "comma-delimited non-empty items",
-        actual: "empty list item",
-      }),
-    );
-    return undefined;
-  }
-
-  return values;
-}
-
 function parseValidatedPrimitiveField<T>(
   context: OneRosterCsvRecordRowContext,
   field: string,
@@ -520,7 +306,7 @@ function parseValidatedPrimitiveField<T>(
     readonly expected: string;
   },
 ): T | undefined {
-  const value = readPossiblyRequiredCell(context, field, requiredness);
+  const value = readPossiblyRequiredOneRosterCsvRecordCell(context, field, requiredness);
 
   if (value === undefined || value === "") {
     return undefined;
@@ -544,68 +330,6 @@ function parseValidatedPrimitiveField<T>(
     }),
   );
   return undefined;
-}
-
-function readPossiblyRequiredCell(
-  context: OneRosterCsvRecordRowContext,
-  field: string,
-  requiredness: OneRosterCsvFieldRequiredness,
-): string | undefined {
-  const value = readCell(context, field);
-
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (value !== "" || requiredness === "optional") {
-    return value;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "row.missing_required_value",
-      message: "OneRoster required fields must not be blank.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field,
-      expected: "non-empty value",
-      actual: "empty",
-    }),
-  );
-  return undefined;
-}
-
-function readCell(context: OneRosterCsvRecordRowContext, field: string): string | undefined {
-  const value = context.row.valuesByHeader[field];
-
-  if (value !== undefined) {
-    return value;
-  }
-
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "schema.missing_header",
-      message: "OneRoster CSV table is missing a spec-defined header.",
-      fileName: context.table.fileName,
-      rowNumber: context.row.rowNumber,
-      field,
-    }),
-  );
-  return undefined;
-}
-
-function extractMetadata(context: OneRosterCsvRecordRowContext): OneRosterCsvRecordMetadata {
-  const metadata: Record<string, string> = {};
-
-  for (const header of context.metadataHeaders) {
-    const value = context.row.valuesByHeader[header];
-
-    if (value !== undefined) {
-      metadata[header] = value;
-    }
-  }
-
-  return metadata;
 }
 
 function isAllowedVocabularyValue<TValue extends string>(

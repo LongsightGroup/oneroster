@@ -27,17 +27,6 @@ export type OneRosterCsvRecordTableDefinition<
   readonly parse: (context: OneRosterCsvRecordRowContext) => TRecord | undefined;
 };
 
-/** Preserve a record table descriptor with its inferred generic record type. */
-export function defineOneRosterCsvRecordTable<
-  TPackage,
-  TIndexes,
-  TRecord extends OneRosterCsvRecordBase,
->(
-  definition: OneRosterCsvRecordTableDefinition<TPackage, TIndexes, TRecord>,
-): OneRosterCsvRecordTableDefinition<TPackage, TIndexes, TRecord> {
-  return definition;
-}
-
 /** Parse a typed record table from a normalized OneRoster CSV package. */
 export function parseOneRosterCsvRecordTable<
   TPackage,

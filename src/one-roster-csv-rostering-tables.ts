@@ -1,8 +1,8 @@
 import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
+import type { OneRosterManifest } from "./one-roster-csv-manifest.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import {
   buildOneRosterCsvRecordSetIndex,
-  defineOneRosterCsvRecordTable,
   parseOneRosterCsvRecordTable,
   type OneRosterCsvRecordSet,
   type OneRosterCsvRecordTableDefinition,
@@ -44,7 +44,7 @@ import type {
   OneRosterUserRecord,
 } from "./one-roster-csv-rostering-types.js";
 
-export type RosteringPackageRecords = Omit<OneRosterCsvRosteringPackage, "rawPackage">;
+export type RosteringPackageRecords = Omit<OneRosterCsvRosteringPackage, "rawPackage" | "manifest">;
 
 export type RosteringRecordSet<TRecord extends OneRosterCsvRosteringRecordBase> =
   OneRosterCsvRecordSet<
@@ -60,83 +60,101 @@ type RosteringTableDefinition<TRecord extends OneRosterCsvRosteringRecordBase> =
     TRecord
   >;
 
-function defineRosteringTable<TRecord extends OneRosterCsvRosteringRecordBase>(
-  definition: RosteringTableDefinition<TRecord>,
-): RosteringTableDefinition<TRecord> {
-  return defineOneRosterCsvRecordTable(definition);
-}
-
-const academicSessionsTable = defineRosteringTable<OneRosterAcademicSessionRecord>({
+const academicSessionsTable = {
   fileName: "academicSessions.csv",
   headers: academicSessionHeaders,
-  getRecords: (packageValue) => packageValue.academicSessions,
-  getIndex: (indexes) => indexes.academicSessionsBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.academicSessions,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.academicSessionsBySourcedId,
   parse: parseAcademicSessionRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterAcademicSessionRecord>;
 
-const orgsTable = defineRosteringTable<OneRosterOrgRecord>({
+const orgsTable = {
   fileName: "orgs.csv",
   headers: orgHeaders,
-  getRecords: (packageValue) => packageValue.orgs,
-  getIndex: (indexes) => indexes.orgsBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.orgs,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.orgsBySourcedId,
   parse: parseOrgRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterOrgRecord>;
 
-const coursesTable = defineRosteringTable<OneRosterCourseRecord>({
+const coursesTable = {
   fileName: "courses.csv",
   headers: courseHeaders,
-  getRecords: (packageValue) => packageValue.courses,
-  getIndex: (indexes) => indexes.coursesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.courses,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.coursesBySourcedId,
   parse: parseCourseRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterCourseRecord>;
 
-const classesTable = defineRosteringTable<OneRosterClassRecord>({
+const classesTable = {
   fileName: "classes.csv",
   headers: classHeaders,
-  getRecords: (packageValue) => packageValue.classes,
-  getIndex: (indexes) => indexes.classesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.classes,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.classesBySourcedId,
   parse: parseClassRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterClassRecord>;
 
-const usersTable = defineRosteringTable<OneRosterUserRecord>({
+const usersTable = {
   fileName: "users.csv",
   headers: userHeaders,
-  getRecords: (packageValue) => packageValue.users,
-  getIndex: (indexes) => indexes.usersBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.users,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.usersBySourcedId,
   parse: parseUserRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterUserRecord>;
 
-const rolesTable = defineRosteringTable<OneRosterRoleRecord>({
+const rolesTable = {
   fileName: "roles.csv",
   headers: roleHeaders,
-  getRecords: (packageValue) => packageValue.roles,
-  getIndex: (indexes) => indexes.rolesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.roles,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.rolesBySourcedId,
   parse: parseRoleRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterRoleRecord>;
 
-const enrollmentsTable = defineRosteringTable<OneRosterEnrollmentRecord>({
+const enrollmentsTable = {
   fileName: "enrollments.csv",
   headers: enrollmentHeaders,
-  getRecords: (packageValue) => packageValue.enrollments,
-  getIndex: (indexes) => indexes.enrollmentsBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.enrollments,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.enrollmentsBySourcedId,
   parse: parseEnrollmentRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterEnrollmentRecord>;
 
-const demographicsTable = defineRosteringTable<OneRosterDemographicsRecord>({
+const demographicsTable = {
   fileName: "demographics.csv",
   headers: demographicsHeaders,
-  getRecords: (packageValue) => packageValue.demographics,
-  getIndex: (indexes) => indexes.demographicsBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.demographics,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.demographicsBySourcedId,
   parse: parseDemographicsRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterDemographicsRecord>;
 
-const userProfilesTable = defineRosteringTable<OneRosterUserProfileRecord>({
+const userProfilesTable = {
   fileName: "userProfiles.csv",
   headers: userProfileHeaders,
-  getRecords: (packageValue) => packageValue.userProfiles,
-  getIndex: (indexes) => indexes.userProfilesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvRosteringPackage) => packageValue.userProfiles,
+  getIndex: (indexes: OneRosterCsvRosteringReferenceIndexes) => indexes.userProfilesBySourcedId,
   parse: parseUserProfileRecord,
-});
+} satisfies RosteringTableDefinition<OneRosterUserProfileRecord>;
+
+const rosteringRecordTables = {
+  academicSessions: academicSessionsTable,
+  orgs: orgsTable,
+  courses: coursesTable,
+  classes: classesTable,
+  users: usersTable,
+  roles: rolesTable,
+  enrollments: enrollmentsTable,
+  demographics: demographicsTable,
+  userProfiles: userProfilesTable,
+} as const;
+
+const rosteringIndexTables = {
+  academicSessionsBySourcedId: academicSessionsTable,
+  orgsBySourcedId: orgsTable,
+  coursesBySourcedId: coursesTable,
+  classesBySourcedId: classesTable,
+  usersBySourcedId: usersTable,
+  rolesBySourcedId: rolesTable,
+  enrollmentsBySourcedId: enrollmentsTable,
+  demographicsBySourcedId: demographicsTable,
+  userProfilesBySourcedId: userProfilesTable,
+} as const;
 
 export const academicSessionsRecordSet: RosteringRecordSet<OneRosterAcademicSessionRecord> =
   academicSessionsTable;
@@ -159,17 +177,47 @@ export function parseRosteringPackageRecords(
   return {
     academicSessions: parseOneRosterCsvRecordTable(
       packageValue,
-      academicSessionsTable,
+      rosteringRecordTables.academicSessions,
       diagnostics,
     ),
-    orgs: parseOneRosterCsvRecordTable(packageValue, orgsTable, diagnostics),
-    courses: parseOneRosterCsvRecordTable(packageValue, coursesTable, diagnostics),
-    classes: parseOneRosterCsvRecordTable(packageValue, classesTable, diagnostics),
-    users: parseOneRosterCsvRecordTable(packageValue, usersTable, diagnostics),
-    roles: parseOneRosterCsvRecordTable(packageValue, rolesTable, diagnostics),
-    enrollments: parseOneRosterCsvRecordTable(packageValue, enrollmentsTable, diagnostics),
-    demographics: parseOneRosterCsvRecordTable(packageValue, demographicsTable, diagnostics),
-    userProfiles: parseOneRosterCsvRecordTable(packageValue, userProfilesTable, diagnostics),
+    orgs: parseOneRosterCsvRecordTable(packageValue, rosteringRecordTables.orgs, diagnostics),
+    courses: parseOneRosterCsvRecordTable(packageValue, rosteringRecordTables.courses, diagnostics),
+    classes: parseOneRosterCsvRecordTable(packageValue, rosteringRecordTables.classes, diagnostics),
+    users: parseOneRosterCsvRecordTable(packageValue, rosteringRecordTables.users, diagnostics),
+    roles: parseOneRosterCsvRecordTable(packageValue, rosteringRecordTables.roles, diagnostics),
+    enrollments: parseOneRosterCsvRecordTable(
+      packageValue,
+      rosteringRecordTables.enrollments,
+      diagnostics,
+    ),
+    demographics: parseOneRosterCsvRecordTable(
+      packageValue,
+      rosteringRecordTables.demographics,
+      diagnostics,
+    ),
+    userProfiles: parseOneRosterCsvRecordTable(
+      packageValue,
+      rosteringRecordTables.userProfiles,
+      diagnostics,
+    ),
+  };
+}
+
+/** Build a typed rostering package from parsed records when diagnostics are clean. */
+export function assembleOneRosterCsvRosteringPackage(
+  packageValue: OneRosterCsvPackage,
+  diagnostics: OneRosterCsvPackageDiagnostic[],
+): OneRosterCsvRosteringPackage | undefined {
+  const records = parseRosteringPackageRecords(packageValue, diagnostics);
+
+  if (diagnostics.length > 0) {
+    return undefined;
+  }
+
+  return {
+    rawPackage: packageValue,
+    manifest: packageValue.manifest,
+    ...records,
   };
 }
 
@@ -180,29 +228,51 @@ export function buildRosteringReferenceIndexes(
 ): OneRosterCsvRosteringReferenceIndexes {
   return {
     academicSessionsBySourcedId: buildOneRosterCsvRecordSetIndex(
-      academicSessionsTable,
+      rosteringIndexTables.academicSessionsBySourcedId,
       packageValue,
       diagnostics,
     ),
-    orgsBySourcedId: buildOneRosterCsvRecordSetIndex(orgsTable, packageValue, diagnostics),
-    coursesBySourcedId: buildOneRosterCsvRecordSetIndex(coursesTable, packageValue, diagnostics),
-    classesBySourcedId: buildOneRosterCsvRecordSetIndex(classesTable, packageValue, diagnostics),
-    usersBySourcedId: buildOneRosterCsvRecordSetIndex(usersTable, packageValue, diagnostics),
-    rolesBySourcedId: buildOneRosterCsvRecordSetIndex(rolesTable, packageValue, diagnostics),
+    orgsBySourcedId: buildOneRosterCsvRecordSetIndex(
+      rosteringIndexTables.orgsBySourcedId,
+      packageValue,
+      diagnostics,
+    ),
+    coursesBySourcedId: buildOneRosterCsvRecordSetIndex(
+      rosteringIndexTables.coursesBySourcedId,
+      packageValue,
+      diagnostics,
+    ),
+    classesBySourcedId: buildOneRosterCsvRecordSetIndex(
+      rosteringIndexTables.classesBySourcedId,
+      packageValue,
+      diagnostics,
+    ),
+    usersBySourcedId: buildOneRosterCsvRecordSetIndex(
+      rosteringIndexTables.usersBySourcedId,
+      packageValue,
+      diagnostics,
+    ),
+    rolesBySourcedId: buildOneRosterCsvRecordSetIndex(
+      rosteringIndexTables.rolesBySourcedId,
+      packageValue,
+      diagnostics,
+    ),
     enrollmentsBySourcedId: buildOneRosterCsvRecordSetIndex(
-      enrollmentsTable,
+      rosteringIndexTables.enrollmentsBySourcedId,
       packageValue,
       diagnostics,
     ),
     demographicsBySourcedId: buildOneRosterCsvRecordSetIndex(
-      demographicsTable,
+      rosteringIndexTables.demographicsBySourcedId,
       packageValue,
       diagnostics,
     ),
     userProfilesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      userProfilesTable,
+      rosteringIndexTables.userProfilesBySourcedId,
       packageValue,
       diagnostics,
     ),
   };
 }
+
+export type { OneRosterManifest };

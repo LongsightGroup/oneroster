@@ -1,7 +1,6 @@
 import type { OneRosterCsvRecordRowContext } from "./one-roster-csv-record-context.js";
 import {
   parseBooleanField,
-  parseCommonRecordFields,
   parseDateField,
   parseGuidField,
   parseGuidListField,
@@ -10,8 +9,9 @@ import {
   parseStringListField,
   parseVocabularyField,
   parseYearField,
-} from "./one-roster-csv-record-fields.js";
-import { hasNewRowDiagnostics } from "./one-roster-csv-record-row.js";
+} from "./one-roster-csv-record-field-parsers.js";
+import { parseCommonRecordFields } from "./one-roster-csv-record-lifecycle.js";
+import { parseOneRosterCsvRecordRow } from "./one-roster-csv-record-row.js";
 import {
   academicSessionTypeValues,
   classTypeValues,
@@ -38,35 +38,30 @@ export function parseAcademicSessionRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterAcademicSessionRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const title = parseRequiredStringField(context, "title");
-  const type = parseVocabularyField(context, "type", "required", academicSessionTypeValues, true);
-  const startDate = parseDateField(context, "startDate", "required");
-  const endDate = parseDateField(context, "endDate", "required");
-  const parentSourcedId = parseGuidField(context, "parentSourcedId", "optional");
-  const schoolYear = parseYearField(context, "schoolYear", "required");
 
-  if (
-    hasNewRowDiagnostics(context, diagnosticStart) ||
-    commonFields === undefined ||
-    title === undefined ||
-    type === undefined ||
-    startDate === undefined ||
-    endDate === undefined ||
-    schoolYear === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    title,
-    type,
-    startDate,
-    endDate,
-    parentSourcedId,
-    schoolYear,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      title: parseRequiredStringField(context, "title"),
+      type: parseVocabularyField(context, "type", "required", academicSessionTypeValues, true),
+      startDate: parseDateField(context, "startDate", "required"),
+      endDate: parseDateField(context, "endDate", "required"),
+      parentSourcedId: parseGuidField(context, "parentSourcedId", "optional"),
+      schoolYear: parseYearField(context, "schoolYear", "required"),
+    },
+    ["common", "title", "type", "startDate", "endDate", "schoolYear"],
+    (fields) => ({
+      ...fields.common,
+      title: fields.title,
+      type: fields.type,
+      startDate: fields.startDate,
+      endDate: fields.endDate,
+      parentSourcedId: fields.parentSourcedId,
+      schoolYear: fields.schoolYear,
+    }),
+  );
 }
 
 /** Parse one orgs.csv row into a typed OneRoster record. */
@@ -74,28 +69,26 @@ export function parseOrgRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterOrgRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const name = parseRequiredStringField(context, "name");
-  const type = parseVocabularyField(context, "type", "required", orgTypeValues, true);
-  const identifier = parseOptionalStringField(context, "identifier");
-  const parentSourcedId = parseGuidField(context, "parentSourcedId", "optional");
 
-  if (
-    hasNewRowDiagnostics(context, diagnosticStart) ||
-    commonFields === undefined ||
-    name === undefined ||
-    type === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    name,
-    type,
-    identifier,
-    parentSourcedId,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      name: parseRequiredStringField(context, "name"),
+      type: parseVocabularyField(context, "type", "required", orgTypeValues, true),
+      identifier: parseOptionalStringField(context, "identifier"),
+      parentSourcedId: parseGuidField(context, "parentSourcedId", "optional"),
+    },
+    ["common", "name", "type"],
+    (fields) => ({
+      ...fields.common,
+      name: fields.name,
+      type: fields.type,
+      identifier: fields.identifier,
+      parentSourcedId: fields.parentSourcedId,
+    }),
+  );
 }
 
 /** Parse one courses.csv row into a typed OneRoster record. */
@@ -103,37 +96,32 @@ export function parseCourseRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterCourseRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const schoolYearSourcedId = parseGuidField(context, "schoolYearSourcedId", "optional");
-  const title = parseRequiredStringField(context, "title");
-  const courseCode = parseOptionalStringField(context, "courseCode");
-  const grades = parseStringListField(context, "grades", "optional");
-  const orgSourcedId = parseGuidField(context, "orgSourcedId", "required");
-  const subjects = parseStringListField(context, "subjects", "optional");
-  const subjectCodes = parseStringListField(context, "subjectCodes", "optional");
 
-  if (
-    hasNewRowDiagnostics(context, diagnosticStart) ||
-    commonFields === undefined ||
-    title === undefined ||
-    grades === undefined ||
-    orgSourcedId === undefined ||
-    subjects === undefined ||
-    subjectCodes === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    schoolYearSourcedId,
-    title,
-    courseCode,
-    grades,
-    orgSourcedId,
-    subjects,
-    subjectCodes,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      schoolYearSourcedId: parseGuidField(context, "schoolYearSourcedId", "optional"),
+      title: parseRequiredStringField(context, "title"),
+      courseCode: parseOptionalStringField(context, "courseCode"),
+      grades: parseStringListField(context, "grades", "optional"),
+      orgSourcedId: parseGuidField(context, "orgSourcedId", "required"),
+      subjects: parseStringListField(context, "subjects", "optional"),
+      subjectCodes: parseStringListField(context, "subjectCodes", "optional"),
+    },
+    ["common", "title", "grades", "orgSourcedId", "subjects", "subjectCodes"],
+    (fields) => ({
+      ...fields.common,
+      schoolYearSourcedId: fields.schoolYearSourcedId,
+      title: fields.title,
+      courseCode: fields.courseCode,
+      grades: fields.grades,
+      orgSourcedId: fields.orgSourcedId,
+      subjects: fields.subjects,
+      subjectCodes: fields.subjectCodes,
+    }),
+  );
 }
 
 /** Parse one classes.csv row into a typed OneRoster record. */
@@ -141,49 +129,51 @@ export function parseClassRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterClassRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const title = parseRequiredStringField(context, "title");
-  const grades = parseStringListField(context, "grades", "optional");
-  const courseSourcedId = parseGuidField(context, "courseSourcedId", "required");
-  const classCode = parseOptionalStringField(context, "classCode");
-  const classType = parseVocabularyField(context, "classType", "required", classTypeValues, true);
-  const location = parseOptionalStringField(context, "location");
-  const schoolSourcedId = parseGuidField(context, "schoolSourcedId", "required");
-  const termSourcedIds = parseGuidListField(context, "termSourcedIds", "required");
-  const subjects = parseStringListField(context, "subjects", "optional");
-  const subjectCodes = parseStringListField(context, "subjectCodes", "optional");
-  const periods = parseStringListField(context, "periods", "optional");
 
-  if (
-    hasNewRowDiagnostics(context, diagnosticStart) ||
-    commonFields === undefined ||
-    title === undefined ||
-    grades === undefined ||
-    courseSourcedId === undefined ||
-    classType === undefined ||
-    schoolSourcedId === undefined ||
-    termSourcedIds === undefined ||
-    subjects === undefined ||
-    subjectCodes === undefined ||
-    periods === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    title,
-    grades,
-    courseSourcedId,
-    classCode,
-    classType,
-    location,
-    schoolSourcedId,
-    termSourcedIds,
-    subjects,
-    subjectCodes,
-    periods,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      title: parseRequiredStringField(context, "title"),
+      grades: parseStringListField(context, "grades", "optional"),
+      courseSourcedId: parseGuidField(context, "courseSourcedId", "required"),
+      classCode: parseOptionalStringField(context, "classCode"),
+      classType: parseVocabularyField(context, "classType", "required", classTypeValues, true),
+      location: parseOptionalStringField(context, "location"),
+      schoolSourcedId: parseGuidField(context, "schoolSourcedId", "required"),
+      termSourcedIds: parseGuidListField(context, "termSourcedIds", "required"),
+      subjects: parseStringListField(context, "subjects", "optional"),
+      subjectCodes: parseStringListField(context, "subjectCodes", "optional"),
+      periods: parseStringListField(context, "periods", "optional"),
+    },
+    [
+      "common",
+      "title",
+      "grades",
+      "courseSourcedId",
+      "classType",
+      "schoolSourcedId",
+      "termSourcedIds",
+      "subjects",
+      "subjectCodes",
+      "periods",
+    ],
+    (fields) => ({
+      ...fields.common,
+      title: fields.title,
+      grades: fields.grades,
+      courseSourcedId: fields.courseSourcedId,
+      classCode: fields.classCode,
+      classType: fields.classType,
+      location: fields.location,
+      schoolSourcedId: fields.schoolSourcedId,
+      termSourcedIds: fields.termSourcedIds,
+      subjects: fields.subjects,
+      subjectCodes: fields.subjectCodes,
+      periods: fields.periods,
+    }),
+  );
 }
 
 /** Parse one users.csv row into a typed OneRoster record. */
@@ -191,63 +181,65 @@ export function parseUserRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterUserRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const enabledUser = parseBooleanField(context, "enabledUser", "required");
-  const username = parseRequiredStringField(context, "username");
-  const userIds = parseStringListField(context, "userIds", "optional");
-  const givenName = parseRequiredStringField(context, "givenName");
-  const familyName = parseRequiredStringField(context, "familyName");
-  const middleName = parseOptionalStringField(context, "middleName");
-  const identifier = parseOptionalStringField(context, "identifier");
-  const email = parseOptionalStringField(context, "email");
-  const sms = parseOptionalStringField(context, "sms");
-  const phone = parseOptionalStringField(context, "phone");
-  const agentSourcedIds = parseGuidListField(context, "agentSourcedIds", "optional");
-  const grades = parseStringListField(context, "grades", "optional");
-  const password = parseOptionalStringField(context, "password");
-  const userMasterIdentifier = parseOptionalStringField(context, "userMasterIdentifier");
-  const preferredGivenName = parseOptionalStringField(context, "preferredGivenName");
-  const preferredMiddleName = parseOptionalStringField(context, "preferredMiddleName");
-  const preferredFamilyName = parseOptionalStringField(context, "preferredFamilyName");
-  const primaryOrgSourcedId = parseGuidField(context, "primaryOrgSourcedId", "optional");
-  const pronouns = parseOptionalStringField(context, "pronouns");
 
-  if (
-    hasNewRowDiagnostics(context, diagnosticStart) ||
-    commonFields === undefined ||
-    enabledUser === undefined ||
-    username === undefined ||
-    userIds === undefined ||
-    givenName === undefined ||
-    familyName === undefined ||
-    agentSourcedIds === undefined ||
-    grades === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    enabledUser,
-    username,
-    userIds,
-    givenName,
-    familyName,
-    middleName,
-    identifier,
-    email,
-    sms,
-    phone,
-    agentSourcedIds,
-    grades,
-    password,
-    userMasterIdentifier,
-    preferredGivenName,
-    preferredMiddleName,
-    preferredFamilyName,
-    primaryOrgSourcedId,
-    pronouns,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      enabledUser: parseBooleanField(context, "enabledUser", "required"),
+      username: parseRequiredStringField(context, "username"),
+      userIds: parseStringListField(context, "userIds", "optional"),
+      givenName: parseRequiredStringField(context, "givenName"),
+      familyName: parseRequiredStringField(context, "familyName"),
+      middleName: parseOptionalStringField(context, "middleName"),
+      identifier: parseOptionalStringField(context, "identifier"),
+      email: parseOptionalStringField(context, "email"),
+      sms: parseOptionalStringField(context, "sms"),
+      phone: parseOptionalStringField(context, "phone"),
+      agentSourcedIds: parseGuidListField(context, "agentSourcedIds", "optional"),
+      grades: parseStringListField(context, "grades", "optional"),
+      password: parseOptionalStringField(context, "password"),
+      userMasterIdentifier: parseOptionalStringField(context, "userMasterIdentifier"),
+      preferredGivenName: parseOptionalStringField(context, "preferredGivenName"),
+      preferredMiddleName: parseOptionalStringField(context, "preferredMiddleName"),
+      preferredFamilyName: parseOptionalStringField(context, "preferredFamilyName"),
+      primaryOrgSourcedId: parseGuidField(context, "primaryOrgSourcedId", "optional"),
+      pronouns: parseOptionalStringField(context, "pronouns"),
+    },
+    [
+      "common",
+      "enabledUser",
+      "username",
+      "userIds",
+      "givenName",
+      "familyName",
+      "agentSourcedIds",
+      "grades",
+    ],
+    (fields) => ({
+      ...fields.common,
+      enabledUser: fields.enabledUser,
+      username: fields.username,
+      userIds: fields.userIds,
+      givenName: fields.givenName,
+      familyName: fields.familyName,
+      middleName: fields.middleName,
+      identifier: fields.identifier,
+      email: fields.email,
+      sms: fields.sms,
+      phone: fields.phone,
+      agentSourcedIds: fields.agentSourcedIds,
+      grades: fields.grades,
+      password: fields.password,
+      userMasterIdentifier: fields.userMasterIdentifier,
+      preferredGivenName: fields.preferredGivenName,
+      preferredMiddleName: fields.preferredMiddleName,
+      preferredFamilyName: fields.preferredFamilyName,
+      primaryOrgSourcedId: fields.primaryOrgSourcedId,
+      pronouns: fields.pronouns,
+    }),
+  );
 }
 
 /** Parse one roles.csv row into a typed OneRoster record. */
@@ -255,36 +247,32 @@ export function parseRoleRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterRoleRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const userSourcedId = parseGuidField(context, "userSourcedId", "required");
-  const roleType = parseVocabularyField(context, "roleType", "required", roleTypeValues, false);
-  const role = parseVocabularyField(context, "role", "required", roleValues, true);
-  const beginDate = parseDateField(context, "beginDate", "optional");
-  const endDate = parseDateField(context, "endDate", "optional");
-  const orgSourcedId = parseGuidField(context, "orgSourcedId", "required");
-  const userProfileSourcedId = parseGuidField(context, "userProfileSourcedId", "optional");
 
-  if (
-    hasNewRowDiagnostics(context, diagnosticStart) ||
-    commonFields === undefined ||
-    userSourcedId === undefined ||
-    roleType === undefined ||
-    role === undefined ||
-    orgSourcedId === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    userSourcedId,
-    roleType,
-    role,
-    beginDate,
-    endDate,
-    orgSourcedId,
-    userProfileSourcedId,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      userSourcedId: parseGuidField(context, "userSourcedId", "required"),
+      roleType: parseVocabularyField(context, "roleType", "required", roleTypeValues, false),
+      role: parseVocabularyField(context, "role", "required", roleValues, true),
+      beginDate: parseDateField(context, "beginDate", "optional"),
+      endDate: parseDateField(context, "endDate", "optional"),
+      orgSourcedId: parseGuidField(context, "orgSourcedId", "required"),
+      userProfileSourcedId: parseGuidField(context, "userProfileSourcedId", "optional"),
+    },
+    ["common", "userSourcedId", "roleType", "role", "orgSourcedId"],
+    (fields) => ({
+      ...fields.common,
+      userSourcedId: fields.userSourcedId,
+      roleType: fields.roleType,
+      role: fields.role,
+      beginDate: fields.beginDate,
+      endDate: fields.endDate,
+      orgSourcedId: fields.orgSourcedId,
+      userProfileSourcedId: fields.userProfileSourcedId,
+    }),
+  );
 }
 
 /** Parse one enrollments.csv row into a typed OneRoster record. */
@@ -292,36 +280,32 @@ export function parseEnrollmentRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterEnrollmentRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const classSourcedId = parseGuidField(context, "classSourcedId", "required");
-  const schoolSourcedId = parseGuidField(context, "schoolSourcedId", "required");
-  const userSourcedId = parseGuidField(context, "userSourcedId", "required");
-  const role = parseVocabularyField(context, "role", "required", enrollmentRoleValues, true);
-  const primary = parseBooleanField(context, "primary", "optional");
-  const beginDate = parseDateField(context, "beginDate", "optional");
-  const endDate = parseDateField(context, "endDate", "optional");
 
-  if (
-    hasNewRowDiagnostics(context, diagnosticStart) ||
-    commonFields === undefined ||
-    classSourcedId === undefined ||
-    schoolSourcedId === undefined ||
-    userSourcedId === undefined ||
-    role === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    classSourcedId,
-    schoolSourcedId,
-    userSourcedId,
-    role,
-    primary,
-    beginDate,
-    endDate,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      classSourcedId: parseGuidField(context, "classSourcedId", "required"),
+      schoolSourcedId: parseGuidField(context, "schoolSourcedId", "required"),
+      userSourcedId: parseGuidField(context, "userSourcedId", "required"),
+      role: parseVocabularyField(context, "role", "required", enrollmentRoleValues, true),
+      primary: parseBooleanField(context, "primary", "optional"),
+      beginDate: parseDateField(context, "beginDate", "optional"),
+      endDate: parseDateField(context, "endDate", "optional"),
+    },
+    ["common", "classSourcedId", "schoolSourcedId", "userSourcedId", "role"],
+    (fields) => ({
+      ...fields.common,
+      classSourcedId: fields.classSourcedId,
+      schoolSourcedId: fields.schoolSourcedId,
+      userSourcedId: fields.userSourcedId,
+      role: fields.role,
+      primary: fields.primary,
+      beginDate: fields.beginDate,
+      endDate: fields.endDate,
+    }),
+  );
 }
 
 /** Parse one demographics.csv row into a typed OneRoster record. */
@@ -329,60 +313,60 @@ export function parseDemographicsRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterDemographicsRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const birthDate = parseDateField(context, "birthDate", "optional");
-  const sex = parseVocabularyField(context, "sex", "optional", demographicsSexValues, true);
-  const americanIndianOrAlaskaNative = parseBooleanField(
-    context,
-    "americanIndianOrAlaskaNative",
-    "optional",
-  );
-  const asian = parseBooleanField(context, "asian", "optional");
-  const blackOrAfricanAmerican = parseBooleanField(context, "blackOrAfricanAmerican", "optional");
-  const nativeHawaiianOrOtherPacificIslander = parseBooleanField(
-    context,
-    "nativeHawaiianOrOtherPacificIslander",
-    "optional",
-  );
-  const white = parseBooleanField(context, "white", "optional");
-  const demographicRaceTwoOrMoreRaces = parseBooleanField(
-    context,
-    "demographicRaceTwoOrMoreRaces",
-    "optional",
-  );
-  const hispanicOrLatinoEthnicity = parseBooleanField(
-    context,
-    "hispanicOrLatinoEthnicity",
-    "optional",
-  );
-  const countryOfBirthCode = parseOptionalStringField(context, "countryOfBirthCode");
-  const stateOfBirthAbbreviation = parseOptionalStringField(context, "stateOfBirthAbbreviation");
-  const cityOfBirth = parseOptionalStringField(context, "cityOfBirth");
-  const publicSchoolResidenceStatus = parseOptionalStringField(
-    context,
-    "publicSchoolResidenceStatus",
-  );
 
-  if (hasNewRowDiagnostics(context, diagnosticStart) || commonFields === undefined) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    birthDate,
-    sex,
-    americanIndianOrAlaskaNative,
-    asian,
-    blackOrAfricanAmerican,
-    nativeHawaiianOrOtherPacificIslander,
-    white,
-    demographicRaceTwoOrMoreRaces,
-    hispanicOrLatinoEthnicity,
-    countryOfBirthCode,
-    stateOfBirthAbbreviation,
-    cityOfBirth,
-    publicSchoolResidenceStatus,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      birthDate: parseDateField(context, "birthDate", "optional"),
+      sex: parseVocabularyField(context, "sex", "optional", demographicsSexValues, true),
+      americanIndianOrAlaskaNative: parseBooleanField(
+        context,
+        "americanIndianOrAlaskaNative",
+        "optional",
+      ),
+      asian: parseBooleanField(context, "asian", "optional"),
+      blackOrAfricanAmerican: parseBooleanField(context, "blackOrAfricanAmerican", "optional"),
+      nativeHawaiianOrOtherPacificIslander: parseBooleanField(
+        context,
+        "nativeHawaiianOrOtherPacificIslander",
+        "optional",
+      ),
+      white: parseBooleanField(context, "white", "optional"),
+      demographicRaceTwoOrMoreRaces: parseBooleanField(
+        context,
+        "demographicRaceTwoOrMoreRaces",
+        "optional",
+      ),
+      hispanicOrLatinoEthnicity: parseBooleanField(
+        context,
+        "hispanicOrLatinoEthnicity",
+        "optional",
+      ),
+      countryOfBirthCode: parseOptionalStringField(context, "countryOfBirthCode"),
+      stateOfBirthAbbreviation: parseOptionalStringField(context, "stateOfBirthAbbreviation"),
+      cityOfBirth: parseOptionalStringField(context, "cityOfBirth"),
+      publicSchoolResidenceStatus: parseOptionalStringField(context, "publicSchoolResidenceStatus"),
+    },
+    ["common"],
+    (fields) => ({
+      ...fields.common,
+      birthDate: fields.birthDate,
+      sex: fields.sex,
+      americanIndianOrAlaskaNative: fields.americanIndianOrAlaskaNative,
+      asian: fields.asian,
+      blackOrAfricanAmerican: fields.blackOrAfricanAmerican,
+      nativeHawaiianOrOtherPacificIslander: fields.nativeHawaiianOrOtherPacificIslander,
+      white: fields.white,
+      demographicRaceTwoOrMoreRaces: fields.demographicRaceTwoOrMoreRaces,
+      hispanicOrLatinoEthnicity: fields.hispanicOrLatinoEthnicity,
+      countryOfBirthCode: fields.countryOfBirthCode,
+      stateOfBirthAbbreviation: fields.stateOfBirthAbbreviation,
+      cityOfBirth: fields.cityOfBirth,
+      publicSchoolResidenceStatus: fields.publicSchoolResidenceStatus,
+    }),
+  );
 }
 
 /** Parse one userProfiles.csv row into a typed OneRoster record. */
@@ -390,37 +374,32 @@ export function parseUserProfileRecord(
   context: OneRosterCsvRecordRowContext,
 ): OneRosterUserProfileRecord | undefined {
   const diagnosticStart = context.diagnostics.length;
-  const commonFields = parseCommonRecordFields(context);
-  const userSourcedId = parseGuidField(context, "userSourcedId", "required");
-  const profileType = parseRequiredStringField(context, "profileType");
-  const vendorId = parseRequiredStringField(context, "vendorId");
-  const applicationId = parseOptionalStringField(context, "applicationId");
-  const description = parseOptionalStringField(context, "description");
-  const credentialType = parseRequiredStringField(context, "credentialType");
-  const username = parseRequiredStringField(context, "username");
-  const password = parseOptionalStringField(context, "password");
 
-  if (
-    hasNewRowDiagnostics(context, diagnosticStart) ||
-    commonFields === undefined ||
-    userSourcedId === undefined ||
-    profileType === undefined ||
-    vendorId === undefined ||
-    credentialType === undefined ||
-    username === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...commonFields,
-    userSourcedId,
-    profileType,
-    vendorId,
-    applicationId,
-    description,
-    credentialType,
-    username,
-    password,
-  };
+  return parseOneRosterCsvRecordRow(
+    context,
+    diagnosticStart,
+    {
+      common: parseCommonRecordFields(context),
+      userSourcedId: parseGuidField(context, "userSourcedId", "required"),
+      profileType: parseRequiredStringField(context, "profileType"),
+      vendorId: parseRequiredStringField(context, "vendorId"),
+      applicationId: parseOptionalStringField(context, "applicationId"),
+      description: parseOptionalStringField(context, "description"),
+      credentialType: parseRequiredStringField(context, "credentialType"),
+      username: parseRequiredStringField(context, "username"),
+      password: parseOptionalStringField(context, "password"),
+    },
+    ["common", "userSourcedId", "profileType", "vendorId", "credentialType", "username"],
+    (fields) => ({
+      ...fields.common,
+      userSourcedId: fields.userSourcedId,
+      profileType: fields.profileType,
+      vendorId: fields.vendorId,
+      applicationId: fields.applicationId,
+      description: fields.description,
+      credentialType: fields.credentialType,
+      username: fields.username,
+      password: fields.password,
+    }),
+  );
 }

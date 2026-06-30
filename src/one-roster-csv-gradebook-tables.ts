@@ -2,7 +2,6 @@ import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import {
   buildOneRosterCsvRecordSetIndex,
-  defineOneRosterCsvRecordTable,
   parseOneRosterCsvRecordTable,
   type OneRosterCsvRecordSet,
   type OneRosterCsvRecordTableDefinition,
@@ -57,77 +56,97 @@ type GradebookTableDefinition<TRecord extends OneRosterCsvGradebookRecordBase> =
     TRecord
   >;
 
-function defineGradebookTable<TRecord extends OneRosterCsvGradebookRecordBase>(
-  definition: GradebookTableDefinition<TRecord>,
-): GradebookTableDefinition<TRecord> {
-  return defineOneRosterCsvRecordTable(definition);
-}
-
-const categoriesTable = defineGradebookTable<OneRosterCategoryRecord>({
+const categoriesTable = {
   fileName: "categories.csv",
   headers: categoryHeaders,
-  getRecords: (packageValue) => packageValue.categories,
-  getIndex: (indexes) => indexes.categoriesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvGradebookPackage) => packageValue.categories,
+  getIndex: (indexes: OneRosterCsvGradebookReferenceIndexes) => indexes.categoriesBySourcedId,
   parse: parseCategoryRecord,
-});
+} satisfies GradebookTableDefinition<OneRosterCategoryRecord>;
 
-const lineItemsTable = defineGradebookTable<OneRosterLineItemRecord>({
+const lineItemsTable = {
   fileName: "lineItems.csv",
   headers: lineItemHeaders,
-  getRecords: (packageValue) => packageValue.lineItems,
-  getIndex: (indexes) => indexes.lineItemsBySourcedId,
+  getRecords: (packageValue: OneRosterCsvGradebookPackage) => packageValue.lineItems,
+  getIndex: (indexes: OneRosterCsvGradebookReferenceIndexes) => indexes.lineItemsBySourcedId,
   parse: parseLineItemRecord,
-});
+} satisfies GradebookTableDefinition<OneRosterLineItemRecord>;
 
-const resultsTable = defineGradebookTable<OneRosterResultRecord>({
+const resultsTable = {
   fileName: "results.csv",
   headers: resultHeaders,
-  getRecords: (packageValue) => packageValue.results,
-  getIndex: (indexes) => indexes.resultsBySourcedId,
+  getRecords: (packageValue: OneRosterCsvGradebookPackage) => packageValue.results,
+  getIndex: (indexes: OneRosterCsvGradebookReferenceIndexes) => indexes.resultsBySourcedId,
   parse: parseResultRecord,
-});
+} satisfies GradebookTableDefinition<OneRosterResultRecord>;
 
-const scoreScalesTable = defineGradebookTable<OneRosterScoreScaleRecord>({
+const scoreScalesTable = {
   fileName: "scoreScales.csv",
   headers: scoreScaleHeaders,
-  getRecords: (packageValue) => packageValue.scoreScales,
-  getIndex: (indexes) => indexes.scoreScalesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvGradebookPackage) => packageValue.scoreScales,
+  getIndex: (indexes: OneRosterCsvGradebookReferenceIndexes) => indexes.scoreScalesBySourcedId,
   parse: parseScoreScaleRecord,
-});
+} satisfies GradebookTableDefinition<OneRosterScoreScaleRecord>;
 
-const lineItemLearningObjectiveIdsTable =
-  defineGradebookTable<OneRosterLineItemLearningObjectiveIdRecord>({
-    fileName: "lineItemLearningObjectiveIds.csv",
-    headers: lineItemLearningObjectiveIdHeaders,
-    getRecords: (packageValue) => packageValue.lineItemLearningObjectiveIds,
-    getIndex: (indexes) => indexes.lineItemLearningObjectiveIdsBySourcedId,
-    parse: parseLineItemLearningObjectiveIdRecord,
-  });
+const lineItemLearningObjectiveIdsTable = {
+  fileName: "lineItemLearningObjectiveIds.csv",
+  headers: lineItemLearningObjectiveIdHeaders,
+  getRecords: (packageValue: OneRosterCsvGradebookPackage) =>
+    packageValue.lineItemLearningObjectiveIds,
+  getIndex: (indexes: OneRosterCsvGradebookReferenceIndexes) =>
+    indexes.lineItemLearningObjectiveIdsBySourcedId,
+  parse: parseLineItemLearningObjectiveIdRecord,
+} satisfies GradebookTableDefinition<OneRosterLineItemLearningObjectiveIdRecord>;
 
-const lineItemScoreScalesTable = defineGradebookTable<OneRosterLineItemScoreScaleRecord>({
+const lineItemScoreScalesTable = {
   fileName: "lineItemScoreScales.csv",
   headers: lineItemScoreScaleHeaders,
-  getRecords: (packageValue) => packageValue.lineItemScoreScales,
-  getIndex: (indexes) => indexes.lineItemScoreScalesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvGradebookPackage) => packageValue.lineItemScoreScales,
+  getIndex: (indexes: OneRosterCsvGradebookReferenceIndexes) =>
+    indexes.lineItemScoreScalesBySourcedId,
   parse: parseLineItemScoreScaleRecord,
-});
+} satisfies GradebookTableDefinition<OneRosterLineItemScoreScaleRecord>;
 
-const resultLearningObjectiveIdsTable =
-  defineGradebookTable<OneRosterResultLearningObjectiveIdRecord>({
-    fileName: "resultLearningObjectiveIds.csv",
-    headers: resultLearningObjectiveIdHeaders,
-    getRecords: (packageValue) => packageValue.resultLearningObjectiveIds,
-    getIndex: (indexes) => indexes.resultLearningObjectiveIdsBySourcedId,
-    parse: parseResultLearningObjectiveIdRecord,
-  });
+const resultLearningObjectiveIdsTable = {
+  fileName: "resultLearningObjectiveIds.csv",
+  headers: resultLearningObjectiveIdHeaders,
+  getRecords: (packageValue: OneRosterCsvGradebookPackage) =>
+    packageValue.resultLearningObjectiveIds,
+  getIndex: (indexes: OneRosterCsvGradebookReferenceIndexes) =>
+    indexes.resultLearningObjectiveIdsBySourcedId,
+  parse: parseResultLearningObjectiveIdRecord,
+} satisfies GradebookTableDefinition<OneRosterResultLearningObjectiveIdRecord>;
 
-const resultScoreScalesTable = defineGradebookTable<OneRosterResultScoreScaleRecord>({
+const resultScoreScalesTable = {
   fileName: "resultScoreScales.csv",
   headers: resultScoreScaleHeaders,
-  getRecords: (packageValue) => packageValue.resultScoreScales,
-  getIndex: (indexes) => indexes.resultScoreScalesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvGradebookPackage) => packageValue.resultScoreScales,
+  getIndex: (indexes: OneRosterCsvGradebookReferenceIndexes) =>
+    indexes.resultScoreScalesBySourcedId,
   parse: parseResultScoreScaleRecord,
-});
+} satisfies GradebookTableDefinition<OneRosterResultScoreScaleRecord>;
+
+const gradebookRecordTables = {
+  categories: categoriesTable,
+  lineItems: lineItemsTable,
+  results: resultsTable,
+  scoreScales: scoreScalesTable,
+  lineItemLearningObjectiveIds: lineItemLearningObjectiveIdsTable,
+  lineItemScoreScales: lineItemScoreScalesTable,
+  resultLearningObjectiveIds: resultLearningObjectiveIdsTable,
+  resultScoreScales: resultScoreScalesTable,
+} as const;
+
+const gradebookIndexTables = {
+  categoriesBySourcedId: categoriesTable,
+  lineItemsBySourcedId: lineItemsTable,
+  resultsBySourcedId: resultsTable,
+  scoreScalesBySourcedId: scoreScalesTable,
+  lineItemLearningObjectiveIdsBySourcedId: lineItemLearningObjectiveIdsTable,
+  lineItemScoreScalesBySourcedId: lineItemScoreScalesTable,
+  resultLearningObjectiveIdsBySourcedId: resultLearningObjectiveIdsTable,
+  resultScoreScalesBySourcedId: resultScoreScalesTable,
+} as const;
 
 export const categoriesRecordSet: GradebookRecordSet<OneRosterCategoryRecord> = categoriesTable;
 export const lineItemsRecordSet: GradebookRecordSet<OneRosterLineItemRecord> = lineItemsTable;
@@ -148,28 +167,40 @@ export function parseGradebookPackageRecords(
   diagnostics: OneRosterCsvPackageDiagnostic[],
 ): GradebookPackageRecords {
   return {
-    categories: parseOneRosterCsvRecordTable(packageValue, categoriesTable, diagnostics),
-    lineItems: parseOneRosterCsvRecordTable(packageValue, lineItemsTable, diagnostics),
-    results: parseOneRosterCsvRecordTable(packageValue, resultsTable, diagnostics),
-    scoreScales: parseOneRosterCsvRecordTable(packageValue, scoreScalesTable, diagnostics),
+    categories: parseOneRosterCsvRecordTable(
+      packageValue,
+      gradebookRecordTables.categories,
+      diagnostics,
+    ),
+    lineItems: parseOneRosterCsvRecordTable(
+      packageValue,
+      gradebookRecordTables.lineItems,
+      diagnostics,
+    ),
+    results: parseOneRosterCsvRecordTable(packageValue, gradebookRecordTables.results, diagnostics),
+    scoreScales: parseOneRosterCsvRecordTable(
+      packageValue,
+      gradebookRecordTables.scoreScales,
+      diagnostics,
+    ),
     lineItemLearningObjectiveIds: parseOneRosterCsvRecordTable(
       packageValue,
-      lineItemLearningObjectiveIdsTable,
+      gradebookRecordTables.lineItemLearningObjectiveIds,
       diagnostics,
     ),
     lineItemScoreScales: parseOneRosterCsvRecordTable(
       packageValue,
-      lineItemScoreScalesTable,
+      gradebookRecordTables.lineItemScoreScales,
       diagnostics,
     ),
     resultLearningObjectiveIds: parseOneRosterCsvRecordTable(
       packageValue,
-      resultLearningObjectiveIdsTable,
+      gradebookRecordTables.resultLearningObjectiveIds,
       diagnostics,
     ),
     resultScoreScales: parseOneRosterCsvRecordTable(
       packageValue,
-      resultScoreScalesTable,
+      gradebookRecordTables.resultScoreScales,
       diagnostics,
     ),
   };
@@ -182,38 +213,42 @@ export function buildGradebookReferenceIndexes(
 ): OneRosterCsvGradebookReferenceIndexes {
   return {
     categoriesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      categoriesTable,
+      gradebookIndexTables.categoriesBySourcedId,
       packageValue,
       diagnostics,
     ),
     lineItemsBySourcedId: buildOneRosterCsvRecordSetIndex(
-      lineItemsTable,
+      gradebookIndexTables.lineItemsBySourcedId,
       packageValue,
       diagnostics,
     ),
-    resultsBySourcedId: buildOneRosterCsvRecordSetIndex(resultsTable, packageValue, diagnostics),
+    resultsBySourcedId: buildOneRosterCsvRecordSetIndex(
+      gradebookIndexTables.resultsBySourcedId,
+      packageValue,
+      diagnostics,
+    ),
     scoreScalesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      scoreScalesTable,
+      gradebookIndexTables.scoreScalesBySourcedId,
       packageValue,
       diagnostics,
     ),
     lineItemLearningObjectiveIdsBySourcedId: buildOneRosterCsvRecordSetIndex(
-      lineItemLearningObjectiveIdsTable,
+      gradebookIndexTables.lineItemLearningObjectiveIdsBySourcedId,
       packageValue,
       diagnostics,
     ),
     lineItemScoreScalesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      lineItemScoreScalesTable,
+      gradebookIndexTables.lineItemScoreScalesBySourcedId,
       packageValue,
       diagnostics,
     ),
     resultLearningObjectiveIdsBySourcedId: buildOneRosterCsvRecordSetIndex(
-      resultLearningObjectiveIdsTable,
+      gradebookIndexTables.resultLearningObjectiveIdsBySourcedId,
       packageValue,
       diagnostics,
     ),
     resultScoreScalesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      resultScoreScalesTable,
+      gradebookIndexTables.resultScoreScalesBySourcedId,
       packageValue,
       diagnostics,
     ),

@@ -2,7 +2,6 @@ import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import {
   buildOneRosterCsvRecordSetIndex,
-  defineOneRosterCsvRecordTable,
   parseOneRosterCsvRecordTable,
   type OneRosterCsvRecordSet,
   type OneRosterCsvRecordTableDefinition,
@@ -45,43 +44,51 @@ type ResourcesTableDefinition<TRecord extends OneRosterCsvResourcesRecordBase> =
     TRecord
   >;
 
-function defineResourcesTable<TRecord extends OneRosterCsvResourcesRecordBase>(
-  definition: ResourcesTableDefinition<TRecord>,
-): ResourcesTableDefinition<TRecord> {
-  return defineOneRosterCsvRecordTable(definition);
-}
-
-const resourcesTable = defineResourcesTable<OneRosterResourceRecord>({
+const resourcesTable = {
   fileName: "resources.csv",
   headers: resourceHeaders,
-  getRecords: (packageValue) => packageValue.resources,
-  getIndex: (indexes) => indexes.resourcesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvResourcesPackage) => packageValue.resources,
+  getIndex: (indexes: OneRosterCsvResourcesReferenceIndexes) => indexes.resourcesBySourcedId,
   parse: parseResourceRecord,
-});
+} satisfies ResourcesTableDefinition<OneRosterResourceRecord>;
 
-const classResourcesTable = defineResourcesTable<OneRosterClassResourceRecord>({
+const classResourcesTable = {
   fileName: "classResources.csv",
   headers: classResourceHeaders,
-  getRecords: (packageValue) => packageValue.classResources,
-  getIndex: (indexes) => indexes.classResourcesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvResourcesPackage) => packageValue.classResources,
+  getIndex: (indexes: OneRosterCsvResourcesReferenceIndexes) => indexes.classResourcesBySourcedId,
   parse: parseClassResourceRecord,
-});
+} satisfies ResourcesTableDefinition<OneRosterClassResourceRecord>;
 
-const courseResourcesTable = defineResourcesTable<OneRosterCourseResourceRecord>({
+const courseResourcesTable = {
   fileName: "courseResources.csv",
   headers: courseResourceHeaders,
-  getRecords: (packageValue) => packageValue.courseResources,
-  getIndex: (indexes) => indexes.courseResourcesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvResourcesPackage) => packageValue.courseResources,
+  getIndex: (indexes: OneRosterCsvResourcesReferenceIndexes) => indexes.courseResourcesBySourcedId,
   parse: parseCourseResourceRecord,
-});
+} satisfies ResourcesTableDefinition<OneRosterCourseResourceRecord>;
 
-const userResourcesTable = defineResourcesTable<OneRosterUserResourceRecord>({
+const userResourcesTable = {
   fileName: "userResources.csv",
   headers: userResourceHeaders,
-  getRecords: (packageValue) => packageValue.userResources,
-  getIndex: (indexes) => indexes.userResourcesBySourcedId,
+  getRecords: (packageValue: OneRosterCsvResourcesPackage) => packageValue.userResources,
+  getIndex: (indexes: OneRosterCsvResourcesReferenceIndexes) => indexes.userResourcesBySourcedId,
   parse: parseUserResourceRecord,
-});
+} satisfies ResourcesTableDefinition<OneRosterUserResourceRecord>;
+
+const resourcesRecordTables = {
+  resources: resourcesTable,
+  classResources: classResourcesTable,
+  courseResources: courseResourcesTable,
+  userResources: userResourcesTable,
+} as const;
+
+const resourcesIndexTables = {
+  resourcesBySourcedId: resourcesTable,
+  classResourcesBySourcedId: classResourcesTable,
+  courseResourcesBySourcedId: courseResourcesTable,
+  userResourcesBySourcedId: userResourcesTable,
+} as const;
 
 export const resourcesRecordSet: ResourcesRecordSet<OneRosterResourceRecord> = resourcesTable;
 export const classResourcesRecordSet: ResourcesRecordSet<OneRosterClassResourceRecord> =
@@ -97,10 +104,26 @@ export function parseResourcesPackageRecords(
   diagnostics: OneRosterCsvPackageDiagnostic[],
 ): ResourcesPackageRecords {
   return {
-    resources: parseOneRosterCsvRecordTable(packageValue, resourcesTable, diagnostics),
-    classResources: parseOneRosterCsvRecordTable(packageValue, classResourcesTable, diagnostics),
-    courseResources: parseOneRosterCsvRecordTable(packageValue, courseResourcesTable, diagnostics),
-    userResources: parseOneRosterCsvRecordTable(packageValue, userResourcesTable, diagnostics),
+    resources: parseOneRosterCsvRecordTable(
+      packageValue,
+      resourcesRecordTables.resources,
+      diagnostics,
+    ),
+    classResources: parseOneRosterCsvRecordTable(
+      packageValue,
+      resourcesRecordTables.classResources,
+      diagnostics,
+    ),
+    courseResources: parseOneRosterCsvRecordTable(
+      packageValue,
+      resourcesRecordTables.courseResources,
+      diagnostics,
+    ),
+    userResources: parseOneRosterCsvRecordTable(
+      packageValue,
+      resourcesRecordTables.userResources,
+      diagnostics,
+    ),
   };
 }
 
@@ -111,22 +134,22 @@ export function buildResourcesReferenceIndexes(
 ): OneRosterCsvResourcesReferenceIndexes {
   return {
     resourcesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      resourcesTable,
+      resourcesIndexTables.resourcesBySourcedId,
       packageValue,
       diagnostics,
     ),
     classResourcesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      classResourcesTable,
+      resourcesIndexTables.classResourcesBySourcedId,
       packageValue,
       diagnostics,
     ),
     courseResourcesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      courseResourcesTable,
+      resourcesIndexTables.courseResourcesBySourcedId,
       packageValue,
       diagnostics,
     ),
     userResourcesBySourcedId: buildOneRosterCsvRecordSetIndex(
-      userResourcesTable,
+      resourcesIndexTables.userResourcesBySourcedId,
       packageValue,
       diagnostics,
     ),

@@ -18,7 +18,7 @@ export type { OneRosterCsvReferenceValidationOptions } from "./one-roster-csv-re
 export type OneRosterCsvProfileValidationCollectionOptions = {
   readonly referenceOptions?: OneRosterCsvReferenceValidationOptions;
   readonly rosteringValidation?: OneRosterCsvRosteringValidationState | undefined;
-  readonly includeRosteringDiagnostics?: boolean;
+  readonly suppressRosteringDiagnostics?: boolean;
 };
 
 /** Accumulated profile validation state, including rostering and profile indexes. */
@@ -38,7 +38,7 @@ export function collectProfileReferenceValidation<
   readonly packageValue: TPackage;
   readonly options?: OneRosterCsvReferenceValidationOptions;
   readonly rosteringValidation?: OneRosterCsvRosteringValidationState | undefined;
-  readonly includeRosteringDiagnostics?: boolean;
+  readonly suppressRosteringDiagnostics?: boolean;
   readonly buildIndexes: (
     packageValue: TPackage,
     diagnostics: OneRosterCsvPackageDiagnostic[],
@@ -56,7 +56,7 @@ export function collectProfileReferenceValidation<
     input.rosteringValidation ??
     collectOneRosterCsvRosteringValidation(input.rosteringPackage, input.options ?? {});
   const diagnostics: OneRosterCsvPackageDiagnostic[] =
-    input.includeRosteringDiagnostics === false ? [] : [...rosteringValidation.diagnostics];
+    input.suppressRosteringDiagnostics === true ? [] : [...rosteringValidation.diagnostics];
   const indexes = input.buildIndexes(input.packageValue, diagnostics);
   const referenceMode = input.options?.referenceMode ?? "bulkOnly";
   const context = input.buildContext({

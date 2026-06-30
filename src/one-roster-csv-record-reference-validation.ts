@@ -47,6 +47,22 @@ export type OneRosterCsvReferenceRuleInput<
   readonly getReferenceValues: (record: TRecord) => ReadonlyArray<OneRosterGuid>;
 };
 
+/** Build a reference target backed by one typed record-set index. */
+export function oneRosterCsvRecordSetTarget<
+  TContext,
+  TPackage,
+  TIndexes,
+  TRecord extends OneRosterCsvRecordBase,
+>(
+  recordSet: OneRosterCsvRecordSet<TPackage, TIndexes, TRecord>,
+  getIndexes: (context: TContext) => TIndexes,
+): OneRosterCsvReferenceTarget<TContext> {
+  return {
+    fileName: recordSet.fileName,
+    getIndex: (context) => recordSet.getIndex(getIndexes(context)),
+  };
+}
+
 /** Build an executable reference rule from declarative source, target, and field descriptors. */
 export function defineOneRosterCsvReferenceRule<
   TContext extends OneRosterCsvReferenceValidationContext<TPackage>,

@@ -4,7 +4,7 @@ import {
   type OneRosterCsvPackageOptions,
 } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
-import { parseOneRosterCsvRosteringPackage } from "./one-roster-csv-rostering.js";
+import { assembleOneRosterCsvRosteringPackage } from "./one-roster-csv-rostering-tables.js";
 import type { OneRosterCsvRosteringPackage } from "./one-roster-csv-rostering-types.js";
 import { err, ok, type Result } from "./result.js";
 
@@ -40,21 +40,16 @@ export function parseOneRosterCsvLayeredPackage<TProfileRecords>(
   { readonly rosteringPackage: OneRosterCsvRosteringPackage } & TProfileRecords,
   readonly OneRosterCsvPackageDiagnostic[]
 > {
-  const rosteringResult = parseOneRosterCsvRosteringPackage(packageValue);
   const diagnostics: OneRosterCsvPackageDiagnostic[] = [];
-
-  if (rosteringResult._tag === "err") {
-    diagnostics.push(...rosteringResult.error);
-  }
-
+  const rosteringPackage = assembleOneRosterCsvRosteringPackage(packageValue, diagnostics);
   const profileRecords = parseProfileRecords(packageValue, diagnostics);
 
-  if (rosteringResult._tag === "err" || diagnostics.length > 0) {
+  if (rosteringPackage === undefined || diagnostics.length > 0) {
     return err(diagnostics);
   }
 
   return ok({
-    rosteringPackage: rosteringResult.value,
+    rosteringPackage,
     ...profileRecords,
   });
 }
