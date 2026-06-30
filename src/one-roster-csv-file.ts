@@ -1,6 +1,5 @@
-/** Canonical OneRoster 1.2 CSV file names. */
-export const oneRosterCsvFileNames = [
-  "manifest.csv",
+/** Canonical OneRoster 1.2 CSV data file names, excluding manifest.csv. */
+export const oneRosterCsvDataFileNames = [
   "academicSessions.csv",
   "categories.csv",
   "classes.csv",
@@ -24,10 +23,25 @@ export const oneRosterCsvFileNames = [
   "users.csv",
 ] as const;
 
-/** Canonical OneRoster 1.2 CSV file name. */
-export type OneRosterCsvFileName = (typeof oneRosterCsvFileNames)[number];
+/** Canonical OneRoster 1.2 CSV data file name, excluding manifest.csv. */
+export type OneRosterCsvDataFileName = (typeof oneRosterCsvDataFileNames)[number];
 
+/** Canonical OneRoster 1.2 CSV file name. */
+export type OneRosterCsvFileName = "manifest.csv" | OneRosterCsvDataFileName;
+
+/** Canonical OneRoster 1.2 CSV file names. */
+export const oneRosterCsvFileNames: readonly OneRosterCsvFileName[] = [
+  "manifest.csv",
+  ...oneRosterCsvDataFileNames,
+];
+
+const oneRosterCsvDataFileNameSet = new Set<string>(oneRosterCsvDataFileNames);
 const oneRosterCsvFileNameSet = new Set<string>(oneRosterCsvFileNames);
+
+/** Return whether a string is a canonical OneRoster 1.2 CSV data file name. */
+export function isOneRosterCsvDataFileName(input: string): input is OneRosterCsvDataFileName {
+  return oneRosterCsvDataFileNameSet.has(input);
+}
 
 /** Return whether a string is a canonical OneRoster 1.2 CSV file name. */
 export function isOneRosterCsvFileName(input: string): input is OneRosterCsvFileName {

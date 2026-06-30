@@ -8,8 +8,27 @@ export type {
   CsvParseDiagnosticCode,
   CsvParseOptions,
 } from "./csv.js";
-export { isOneRosterCsvFileName, oneRosterCsvFileNames } from "./one-roster-csv-file.js";
-export type { OneRosterCsvFileName } from "./one-roster-csv-file.js";
+export {
+  isOneRosterCsvDataFileName,
+  isOneRosterCsvFileName,
+  oneRosterCsvDataFileNames,
+  oneRosterCsvFileNames,
+} from "./one-roster-csv-file.js";
+export type { OneRosterCsvDataFileName, OneRosterCsvFileName } from "./one-roster-csv-file.js";
+export { parseOneRosterCsvPackageEntries, parseOneRosterCsvZip } from "./one-roster-csv-package.js";
+export type {
+  OneRosterCsvPackage,
+  OneRosterCsvPackageDiagnostic,
+  OneRosterCsvPackageDiagnosticCode,
+  OneRosterCsvPackageOptions,
+  OneRosterCsvTable,
+  OneRosterCsvTableRow,
+  OneRosterManifest,
+  OneRosterManifestFileMode,
+  OneRosterManifestFileModes,
+  OneRosterManifestSource,
+  OneRosterSuppliedFileMode,
+} from "./one-roster-csv-package.js";
 export { err, ok } from "./result.js";
 export type { Result } from "./result.js";
 export { defaultZipReadLimits, readZipEntries } from "./zip.js";
@@ -35,5 +54,4 @@ export type OneRosterDiagnostic = {
   readonly fileName?: string;
   readonly rowNumber?: number;
   readonly field?: string;
-  readonly rawRow?: Readonly<Record<string, string>>;
 };
