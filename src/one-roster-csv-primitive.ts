@@ -1,7 +1,9 @@
 declare const oneRosterGuidSymbol: unique symbol;
 declare const oneRosterDateSymbol: unique symbol;
 declare const oneRosterDateTimeSymbol: unique symbol;
+declare const oneRosterFloatSymbol: unique symbol;
 declare const oneRosterYearSymbol: unique symbol;
+declare const oneRosterIntegerSymbol: unique symbol;
 
 /** OneRoster GUID value after CSV binding character and length validation. */
 export type OneRosterGuid = string & { readonly [oneRosterGuidSymbol]: "OneRosterGuid" };
@@ -14,12 +16,22 @@ export type OneRosterDateTime = string & {
   readonly [oneRosterDateTimeSymbol]: "OneRosterDateTime";
 };
 
+/** OneRoster Float value after finite base-10 number validation. */
+export type OneRosterFloat = number & { readonly [oneRosterFloatSymbol]: "OneRosterFloat" };
+
 /** OneRoster Year value in exact YYYY form after validation. */
 export type OneRosterYear = string & { readonly [oneRosterYearSymbol]: "OneRosterYear" };
+
+/** OneRoster Integer value after safe base-10 integer validation. */
+export type OneRosterInteger = number & {
+  readonly [oneRosterIntegerSymbol]: "OneRosterInteger";
+};
 
 const guidPattern = /^[0-9A-Za-z./@_-]{1,255}$/u;
 const datePattern = /^(\d{4})-(\d{2})-(\d{2})$/u;
 const dateTimePattern = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/u;
+const floatPattern = /^-?(?:(?:\d+\.?\d*)|(?:\.\d+))(?:[eE][+-]?\d+)?$/u;
+const integerPattern = /^-?(?:0|[1-9]\d*)$/u;
 const yearPattern = /^\d{4}$/u;
 
 /** Parse a string into a OneRoster GUID, returning undefined when the value is not valid. */
@@ -79,6 +91,23 @@ export function parseOneRosterDateTime(input: string): OneRosterDateTime | undef
   return input as OneRosterDateTime;
 }
 
+/** Parse a string into a OneRoster Float, returning undefined when invalid. */
+export function parseOneRosterFloat(input: string): OneRosterFloat | undefined {
+  if (!floatPattern.test(input)) {
+    return undefined;
+  }
+
+  const value = Number(input);
+
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+
+  // SAFETY: The regex and finite check establish the OneRoster finite base-10 number invariant.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  return value as OneRosterFloat;
+}
+
 /** Parse a string into a OneRoster Year, returning undefined when the value is not valid. */
 export function parseOneRosterYear(input: string): OneRosterYear | undefined {
   if (!yearPattern.test(input)) {
@@ -88,6 +117,23 @@ export function parseOneRosterYear(input: string): OneRosterYear | undefined {
   // SAFETY: The regex enforces the exact OneRoster YYYY year form.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   return input as OneRosterYear;
+}
+
+/** Parse a string into a OneRoster Integer, returning undefined when invalid. */
+export function parseOneRosterInteger(input: string): OneRosterInteger | undefined {
+  if (!integerPattern.test(input)) {
+    return undefined;
+  }
+
+  const value = Number(input);
+
+  if (!Number.isSafeInteger(value)) {
+    return undefined;
+  }
+
+  // SAFETY: The regex and safe-integer check establish the OneRoster integer invariant.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  return value as OneRosterInteger;
 }
 
 /** Parse a OneRoster true/false vocabulary token into a boolean. */

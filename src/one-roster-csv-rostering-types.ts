@@ -1,10 +1,19 @@
 import type { OneRosterCsvPackage } from "./one-roster-csv-package.js";
+import type { OneRosterDate, OneRosterGuid, OneRosterYear } from "./one-roster-csv-primitive.js";
 import type {
-  OneRosterDate,
-  OneRosterDateTime,
-  OneRosterGuid,
-  OneRosterYear,
-} from "./one-roster-csv-primitive.js";
+  OneRosterCsvRecordBase,
+  OneRosterExtensionVocabularyToken,
+} from "./one-roster-csv-record-types.js";
+
+export type {
+  OneRosterCsvBulkLifecycle,
+  OneRosterCsvDeltaLifecycle,
+  OneRosterCsvDeltaStatus,
+  OneRosterCsvRecordBase,
+  OneRosterCsvRecordMetadata,
+  OneRosterCsvRowLifecycle,
+  OneRosterExtensionVocabularyToken,
+} from "./one-roster-csv-record-types.js";
 
 /** OneRoster 1.2 CSV rostering files supported by the typed row parser. */
 export type OneRosterCsvRosteringFileName =
@@ -18,37 +27,8 @@ export type OneRosterCsvRosteringFileName =
   | "demographics.csv"
   | "userProfiles.csv";
 
-/** OneRoster extension vocabulary token accepted only on spec-allowed fields. */
-export type OneRosterExtensionVocabularyToken = `ext:${string}`;
-
-/** Delta lifecycle status values allowed by the OneRoster CSV binding. */
-export type OneRosterCsvDeltaStatus = "active" | "tobedeleted";
-
-/** Row lifecycle for a bulk CSV table. */
-export type OneRosterCsvBulkLifecycle = {
-  readonly mode: "bulk";
-};
-
-/** Row lifecycle for a delta CSV table. */
-export type OneRosterCsvDeltaLifecycle = {
-  readonly mode: "delta";
-  readonly status: OneRosterCsvDeltaStatus;
-  readonly dateLastModified: OneRosterDateTime;
-};
-
-/** Row lifecycle normalized from the table manifest mode and lifecycle columns. */
-export type OneRosterCsvRowLifecycle = OneRosterCsvBulkLifecycle | OneRosterCsvDeltaLifecycle;
-
-/** Metadata extension column values carried by a typed OneRoster CSV record. */
-export type OneRosterCsvRecordMetadata = Readonly<Record<string, string>>;
-
 /** Common fields shared by typed OneRoster CSV rostering records. */
-export type OneRosterCsvRosteringRecordBase = {
-  readonly rowNumber: number;
-  readonly sourcedId: OneRosterGuid;
-  readonly lifecycle: OneRosterCsvRowLifecycle;
-  readonly metadata: OneRosterCsvRecordMetadata;
-};
+export type OneRosterCsvRosteringRecordBase = OneRosterCsvRecordBase;
 
 /** OneRoster academicSessions.csv type values. */
 export type OneRosterAcademicSessionType =

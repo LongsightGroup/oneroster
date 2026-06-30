@@ -1,23 +1,10 @@
-import type { OneRosterGuid } from "./one-roster-csv-primitive.js";
-import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
-import type { OneRosterCsvTable, OneRosterCsvTableRow } from "./one-roster-csv-table.js";
 import type {
-  OneRosterCsvRecordMetadata,
-  OneRosterCsvRowLifecycle,
-} from "./one-roster-csv-rostering-types.js";
+  OneRosterCsvCommonRecordFields,
+  OneRosterCsvRecordRowContext,
+} from "./one-roster-csv-record-context.js";
 
 /** Parsing context for one rostering CSV data row. */
-export type RosteringRowContext = {
-  readonly table: OneRosterCsvTable;
-  readonly row: OneRosterCsvTableRow;
-  readonly metadataHeaders: ReadonlyArray<string>;
-  readonly diagnostics: OneRosterCsvPackageDiagnostic[];
-};
+export type RosteringRowContext = OneRosterCsvRecordRowContext;
 
 /** Common fields shared by every typed rostering record. */
-export type CommonRecordFields = {
-  readonly rowNumber: number;
-  readonly sourcedId: OneRosterGuid;
-  readonly lifecycle: OneRosterCsvRowLifecycle;
-  readonly metadata: OneRosterCsvRecordMetadata;
-};
+export type CommonRecordFields = OneRosterCsvCommonRecordFields;

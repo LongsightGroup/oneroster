@@ -33,15 +33,47 @@ export {
   parseOneRosterBooleanToken,
   parseOneRosterDate,
   parseOneRosterDateTime,
+  parseOneRosterFloat,
   parseOneRosterGuid,
+  parseOneRosterInteger,
   parseOneRosterYear,
 } from "./one-roster-csv-primitive.js";
 export type {
   OneRosterDate,
   OneRosterDateTime,
+  OneRosterFloat,
   OneRosterGuid,
+  OneRosterInteger,
   OneRosterYear,
 } from "./one-roster-csv-primitive.js";
+export {
+  parseOneRosterCsvGradebookPackage,
+  parseOneRosterCsvGradebookZip,
+} from "./one-roster-csv-gradebook.js";
+export {
+  parseAndValidateOneRosterCsvGradebookZip,
+  validateOneRosterCsvGradebookPackage,
+} from "./one-roster-csv-gradebook-validation.js";
+export type {
+  OneRosterCategoryRecord,
+  OneRosterCsvGradebookFileName,
+  OneRosterCsvGradebookPackage,
+  OneRosterCsvGradebookRecordBase,
+  OneRosterCsvGradebookReferenceIndexes,
+  OneRosterLearningObjectiveSource,
+  OneRosterLineItemLearningObjectiveIdRecord,
+  OneRosterLineItemRecord,
+  OneRosterLineItemScoreScaleRecord,
+  OneRosterResultLearningObjectiveIdRecord,
+  OneRosterResultRecord,
+  OneRosterResultScoreScaleRecord,
+  OneRosterResultScoreStatus,
+  OneRosterScoreScaleRecord,
+} from "./one-roster-csv-gradebook.js";
+export type {
+  OneRosterCsvGradebookValidationOptions,
+  OneRosterCsvValidatedGradebookPackage,
+} from "./one-roster-csv-gradebook-validation.js";
 export {
   parseOneRosterCsvRosteringPackage,
   parseOneRosterCsvRosteringZip,

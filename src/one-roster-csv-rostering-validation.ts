@@ -1,10 +1,15 @@
 import { parseOneRosterCsvRosteringZip } from "./one-roster-csv-rostering.js";
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
+import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import {
-  packageDiagnostic,
-  type OneRosterCsvPackageDiagnostic,
-} from "./one-roster-csv-package-diagnostic.js";
-import type { OneRosterGuid } from "./one-roster-csv-primitive.js";
+  defineOneRosterCsvReferenceRule,
+  optionalOneRosterCsvReference,
+  validateOneRosterCsvReferences,
+  type OneRosterCsvReferenceRule,
+  type OneRosterCsvReferenceTarget,
+  type OneRosterCsvReferenceValidationContext,
+  type OneRosterCsvReferenceValidationMode,
+} from "./one-roster-csv-record-reference-validation.js";
 import {
   academicSessionsRecordSet,
   buildRosteringReferenceIndexes,
@@ -19,7 +24,6 @@ import {
   usersRecordSet,
 } from "./one-roster-csv-rostering-tables.js";
 import type {
-  OneRosterCsvRosteringFileName,
   OneRosterCsvRosteringPackage,
   OneRosterCsvRosteringRecordBase,
   OneRosterCsvRosteringReferenceIndexes,
@@ -27,9 +31,7 @@ import type {
 import { err, ok, type Result } from "./result.js";
 
 export type { OneRosterCsvRosteringReferenceIndexes } from "./one-roster-csv-rostering-types.js";
-
-/** Controls which row lifecycles participate in reference validation. */
-export type OneRosterCsvReferenceValidationMode = "bulkOnly" | "allRows";
+export type { OneRosterCsvReferenceValidationMode } from "./one-roster-csv-record-reference-validation.js";
 
 /** Options for semantic validation of typed OneRoster CSV rostering records. */
 export type OneRosterCsvRosteringValidationOptions = {
@@ -42,62 +44,73 @@ export type OneRosterCsvValidatedRosteringPackage = {
   readonly indexes: OneRosterCsvRosteringReferenceIndexes;
 };
 
-type ReferenceValidationContext = {
-  readonly packageValue: OneRosterCsvRosteringPackage;
+/** Accumulated rostering validation state, including indexes even when diagnostics exist. */
+export type OneRosterCsvRosteringValidationState = {
   readonly indexes: OneRosterCsvRosteringReferenceIndexes;
-  readonly diagnostics: OneRosterCsvPackageDiagnostic[];
-  readonly referenceMode: OneRosterCsvReferenceValidationMode;
+  readonly diagnostics: readonly OneRosterCsvPackageDiagnostic[];
 };
 
-type ReferenceRule = {
-  readonly validate: (context: ReferenceValidationContext) => void;
-};
+type ReferenceValidationContext =
+  OneRosterCsvReferenceValidationContext<OneRosterCsvRosteringPackage> & {
+    readonly indexes: OneRosterCsvRosteringReferenceIndexes;
+  };
 
-function defineReferenceRule<TRecord extends OneRosterCsvRosteringRecordBase>(rule: {
+type ReferenceRule = OneRosterCsvReferenceRule<ReferenceValidationContext>;
+
+function defineReferenceRule<
+  TRecord extends OneRosterCsvRosteringRecordBase,
+  TTargetRecord extends OneRosterCsvRosteringRecordBase,
+>(rule: {
   readonly source: RosteringRecordSet<TRecord>;
   readonly field: string;
-  readonly target: RosteringRecordSet<OneRosterCsvRosteringRecordBase>;
-  readonly getReferenceValues: (record: TRecord) => ReadonlyArray<OneRosterGuid>;
+  readonly target: RosteringRecordSet<TTargetRecord>;
+  readonly getReferenceValues: (record: TRecord) => ReadonlyArray<TRecord["sourcedId"]>;
 }): ReferenceRule {
+  return defineOneRosterCsvReferenceRule({
+    source: rule.source,
+    field: rule.field,
+    target: targetFromRecordSet(rule.target),
+    getReferenceValues: rule.getReferenceValues,
+  });
+}
+
+function targetFromRecordSet<TRecord extends OneRosterCsvRosteringRecordBase>(
+  recordSet: RosteringRecordSet<TRecord>,
+): OneRosterCsvReferenceTarget<ReferenceValidationContext> {
   return {
-    validate(context) {
-      for (const record of rule.source.getRecords(context.packageValue)) {
-        if (!shouldValidateReferences(context, record)) {
-          continue;
-        }
+    fileName: recordSet.fileName,
+    getIndex: (context) => recordSet.getIndex(context.indexes),
+  };
+}
 
-        const values = rule.getReferenceValues(record);
-        if (values.length === 0) {
-          continue;
-        }
+function isRosteringTargetFilePresent(
+  packageValue: OneRosterCsvRosteringPackage,
+  targetFileName: Parameters<ReferenceValidationContext["isTargetFilePresent"]>[0],
+): boolean {
+  return packageValue.rawPackage.manifest.fileModes[targetFileName] !== "absent";
+}
 
-        if (!isTargetFilePresent(context.packageValue, rule.target.fileName)) {
-          addMissingTargetFileDiagnostic(
-            context,
-            record,
-            rule.source.fileName,
-            rule.field,
-            rule.target.fileName,
-          );
-          continue;
-        }
+/** Collect duplicate and reference validation diagnostics for typed rostering records. */
+export function collectOneRosterCsvRosteringValidation(
+  packageValue: OneRosterCsvRosteringPackage,
+  options: OneRosterCsvRosteringValidationOptions = {},
+): OneRosterCsvRosteringValidationState {
+  const diagnostics: OneRosterCsvPackageDiagnostic[] = [];
+  const indexes = buildRosteringReferenceIndexes(packageValue, diagnostics);
+  const context: ReferenceValidationContext = {
+    packageValue,
+    indexes,
+    diagnostics,
+    referenceMode: options.referenceMode ?? "bulkOnly",
+    isTargetFilePresent: (targetFileName) =>
+      isRosteringTargetFilePresent(packageValue, targetFileName),
+  };
 
-        const targetIndex = rule.target.getIndex(context.indexes);
-        for (const value of values) {
-          if (targetIndex.has(value)) {
-            continue;
-          }
+  validateOneRosterCsvReferences(ROSTERING_REFERENCE_RULES, context);
 
-          addMissingTargetRecordDiagnostic(
-            context,
-            record,
-            rule.source.fileName,
-            rule.field,
-            rule.target.fileName,
-          );
-        }
-      }
-    },
+  return {
+    indexes,
+    diagnostics,
   };
 }
 
@@ -106,19 +119,19 @@ const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
     source: academicSessionsRecordSet,
     field: "parentSourcedId",
     target: academicSessionsRecordSet,
-    getReferenceValues: (record) => optionalReference(record.parentSourcedId),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.parentSourcedId),
   }),
   defineReferenceRule({
     source: orgsRecordSet,
     field: "parentSourcedId",
     target: orgsRecordSet,
-    getReferenceValues: (record) => optionalReference(record.parentSourcedId),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.parentSourcedId),
   }),
   defineReferenceRule({
     source: coursesRecordSet,
     field: "schoolYearSourcedId",
     target: academicSessionsRecordSet,
-    getReferenceValues: (record) => optionalReference(record.schoolYearSourcedId),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.schoolYearSourcedId),
   }),
   defineReferenceRule({
     source: coursesRecordSet,
@@ -154,7 +167,7 @@ const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
     source: usersRecordSet,
     field: "primaryOrgSourcedId",
     target: orgsRecordSet,
-    getReferenceValues: (record) => optionalReference(record.primaryOrgSourcedId),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.primaryOrgSourcedId),
   }),
   defineReferenceRule({
     source: rolesRecordSet,
@@ -172,7 +185,7 @@ const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
     source: rolesRecordSet,
     field: "userProfileSourcedId",
     target: userProfilesRecordSet,
-    getReferenceValues: (record) => optionalReference(record.userProfileSourcedId),
+    getReferenceValues: (record) => optionalOneRosterCsvReference(record.userProfileSourcedId),
   }),
   defineReferenceRule({
     source: enrollmentsRecordSet,
@@ -226,91 +239,14 @@ export function validateOneRosterCsvRosteringPackage(
   packageValue: OneRosterCsvRosteringPackage,
   options: OneRosterCsvRosteringValidationOptions = {},
 ): Result<OneRosterCsvValidatedRosteringPackage, readonly OneRosterCsvPackageDiagnostic[]> {
-  const diagnostics: OneRosterCsvPackageDiagnostic[] = [];
-  const indexes = buildRosteringReferenceIndexes(packageValue, diagnostics);
-  const context: ReferenceValidationContext = {
-    packageValue,
-    indexes,
-    diagnostics,
-    referenceMode: options.referenceMode ?? "bulkOnly",
-  };
+  const validation = collectOneRosterCsvRosteringValidation(packageValue, options);
 
-  validatePackageReferences(context);
-
-  if (diagnostics.length > 0) {
-    return err(diagnostics);
+  if (validation.diagnostics.length > 0) {
+    return err(validation.diagnostics);
   }
 
   return ok({
     rosteringPackage: packageValue,
-    indexes,
+    indexes: validation.indexes,
   });
-}
-
-function validatePackageReferences(context: ReferenceValidationContext): void {
-  for (const rule of ROSTERING_REFERENCE_RULES) {
-    rule.validate(context);
-  }
-}
-
-function optionalReference(value: OneRosterGuid | undefined): ReadonlyArray<OneRosterGuid> {
-  if (value === undefined) {
-    return [];
-  }
-
-  return [value];
-}
-
-function shouldValidateReferences(
-  context: ReferenceValidationContext,
-  sourceRecord: OneRosterCsvRosteringRecordBase,
-): boolean {
-  return context.referenceMode === "allRows" || sourceRecord.lifecycle.mode === "bulk";
-}
-
-function isTargetFilePresent(
-  packageValue: OneRosterCsvRosteringPackage,
-  targetFileName: OneRosterCsvRosteringFileName,
-): boolean {
-  return packageValue.rawPackage.manifest.fileModes[targetFileName] !== "absent";
-}
-
-function addMissingTargetFileDiagnostic(
-  context: ReferenceValidationContext,
-  sourceRecord: OneRosterCsvRosteringRecordBase,
-  sourceFileName: OneRosterCsvRosteringFileName,
-  field: string,
-  targetFileName: OneRosterCsvRosteringFileName,
-): void {
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "reference.missing_target_file",
-      message: "OneRoster reference target file is not supplied by the package.",
-      fileName: sourceFileName,
-      rowNumber: sourceRecord.rowNumber,
-      field,
-      expected: targetFileName,
-      actual: "absent",
-    }),
-  );
-}
-
-function addMissingTargetRecordDiagnostic(
-  context: ReferenceValidationContext,
-  sourceRecord: OneRosterCsvRosteringRecordBase,
-  sourceFileName: OneRosterCsvRosteringFileName,
-  field: string,
-  targetFileName: OneRosterCsvRosteringFileName,
-): void {
-  context.diagnostics.push(
-    packageDiagnostic({
-      code: "reference.missing_target_record",
-      message: "OneRoster reference target record is missing from the supplied target file.",
-      fileName: sourceFileName,
-      rowNumber: sourceRecord.rowNumber,
-      field,
-      expected: targetFileName,
-      actual: "missing",
-    }),
-  );
 }

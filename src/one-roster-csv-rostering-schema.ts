@@ -1,4 +1,8 @@
 import type { OneRosterCsvRosteringFileName } from "./one-roster-csv-rostering-types.js";
+export {
+  formatVocabularyExpected,
+  type OneRosterCsvFieldRequiredness as FieldRequiredness,
+} from "./one-roster-csv-record-schema.js";
 
 /** Spec-defined headers for academicSessions.csv in exact order. */
 export const academicSessionHeaders = [
@@ -192,19 +196,3 @@ export const roleValues = [
 ] as const;
 export const enrollmentRoleValues = ["administrator", "proctor", "student", "teacher"] as const;
 export const demographicsSexValues = ["male", "female", "unspecified", "other"] as const;
-
-export type FieldRequiredness = "required" | "optional";
-
-/** Format allowed vocabulary values for diagnostic expected text. */
-export function formatVocabularyExpected(
-  values: readonly string[],
-  allowExtension: boolean,
-): string {
-  const parts = [...values];
-
-  if (allowExtension) {
-    parts.push("ext:*");
-  }
-
-  return parts.join("|");
-}
