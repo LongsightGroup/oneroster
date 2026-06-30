@@ -14,7 +14,9 @@ export type OneRosterCsvRosteringFileName =
   | "classes.csv"
   | "users.csv"
   | "roles.csv"
-  | "enrollments.csv";
+  | "enrollments.csv"
+  | "demographics.csv"
+  | "userProfiles.csv";
 
 /** OneRoster extension vocabulary token accepted only on spec-allowed fields. */
 export type OneRosterExtensionVocabularyToken = `ext:${string}`;
@@ -185,6 +187,45 @@ export type OneRosterEnrollmentRecord = OneRosterCsvRosteringRecordBase & {
   readonly endDate: OneRosterDate | undefined;
 };
 
+/** OneRoster demographics.csv sex values. */
+export type OneRosterDemographicsSex =
+  | "male"
+  | "female"
+  | "unspecified"
+  | "other"
+  | OneRosterExtensionVocabularyToken;
+
+/** Typed OneRoster demographics.csv record. */
+export type OneRosterDemographicsRecord = OneRosterCsvRosteringRecordBase & {
+  readonly birthDate: OneRosterDate | undefined;
+  readonly sex: OneRosterDemographicsSex | undefined;
+  readonly americanIndianOrAlaskaNative: boolean | undefined;
+  readonly asian: boolean | undefined;
+  readonly blackOrAfricanAmerican: boolean | undefined;
+  readonly nativeHawaiianOrOtherPacificIslander: boolean | undefined;
+  readonly white: boolean | undefined;
+  readonly demographicRaceTwoOrMoreRaces: boolean | undefined;
+  readonly hispanicOrLatinoEthnicity: boolean | undefined;
+  readonly countryOfBirthCode: string | undefined;
+  readonly stateOfBirthAbbreviation: string | undefined;
+  readonly cityOfBirth: string | undefined;
+  readonly publicSchoolResidenceStatus: string | undefined;
+};
+
+/** Typed OneRoster userProfiles.csv record. */
+export type OneRosterUserProfileRecord = OneRosterCsvRosteringRecordBase & {
+  readonly userSourcedId: OneRosterGuid;
+  /** Vendor-defined profile type string from userProfiles.csv. */
+  readonly profileType: string;
+  readonly vendorId: string;
+  readonly applicationId: string | undefined;
+  readonly description: string | undefined;
+  /** Vendor-defined credential type string from userProfiles.csv. */
+  readonly credentialType: string;
+  readonly username: string;
+  readonly password: string | undefined;
+};
+
 /** Typed OneRoster CSV rostering package over the raw normalized package. */
 export type OneRosterCsvRosteringPackage = {
   readonly rawPackage: OneRosterCsvPackage;
@@ -195,4 +236,19 @@ export type OneRosterCsvRosteringPackage = {
   readonly users: ReadonlyArray<OneRosterUserRecord>;
   readonly roles: ReadonlyArray<OneRosterRoleRecord>;
   readonly enrollments: ReadonlyArray<OneRosterEnrollmentRecord>;
+  readonly demographics: ReadonlyArray<OneRosterDemographicsRecord>;
+  readonly userProfiles: ReadonlyArray<OneRosterUserProfileRecord>;
+};
+
+/** Lookup indexes for typed OneRoster CSV rostering records keyed by sourcedId. */
+export type OneRosterCsvRosteringReferenceIndexes = {
+  readonly academicSessionsBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterAcademicSessionRecord>;
+  readonly orgsBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterOrgRecord>;
+  readonly coursesBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterCourseRecord>;
+  readonly classesBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterClassRecord>;
+  readonly usersBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterUserRecord>;
+  readonly rolesBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterRoleRecord>;
+  readonly enrollmentsBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterEnrollmentRecord>;
+  readonly demographicsBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterDemographicsRecord>;
+  readonly userProfilesBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterUserProfileRecord>;
 };

@@ -64,6 +64,8 @@ export type {
   OneRosterCsvRosteringPackage,
   OneRosterCsvRosteringRecordBase,
   OneRosterCsvRowLifecycle,
+  OneRosterDemographicsRecord,
+  OneRosterDemographicsSex,
   OneRosterEnrollmentRecord,
   OneRosterEnrollmentRole,
   OneRosterExtensionVocabularyToken,
@@ -72,6 +74,7 @@ export type {
   OneRosterRole,
   OneRosterRoleRecord,
   OneRosterRoleType,
+  OneRosterUserProfileRecord,
   OneRosterUserRecord,
 } from "./one-roster-csv-rostering.js";
 export type {

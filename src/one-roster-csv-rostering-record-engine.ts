@@ -14,6 +14,7 @@ import {
 import {
   academicSessionTypeValues,
   classTypeValues,
+  demographicsSexValues,
   enrollmentRoleValues,
   orgTypeValues,
   roleTypeValues,
@@ -23,9 +24,11 @@ import type {
   OneRosterAcademicSessionRecord,
   OneRosterClassRecord,
   OneRosterCourseRecord,
+  OneRosterDemographicsRecord,
   OneRosterEnrollmentRecord,
   OneRosterOrgRecord,
   OneRosterRoleRecord,
+  OneRosterUserProfileRecord,
   OneRosterUserRecord,
 } from "./one-roster-csv-rostering-types.js";
 
@@ -307,6 +310,107 @@ export function parseEnrollmentRecord(
     primary,
     beginDate,
     endDate,
+  };
+}
+
+/** Parse one demographics.csv row into a typed OneRoster record. */
+export function parseDemographicsRecord(
+  context: RosteringRowContext,
+): OneRosterDemographicsRecord | undefined {
+  const diagnosticStart = context.diagnostics.length;
+  const commonFields = parseCommonRecordFields(context);
+  const birthDate = parseDateField(context, "birthDate", "optional");
+  const sex = parseVocabularyField(context, "sex", "optional", demographicsSexValues, true);
+  const americanIndianOrAlaskaNative = parseBooleanField(
+    context,
+    "americanIndianOrAlaskaNative",
+    "optional",
+  );
+  const asian = parseBooleanField(context, "asian", "optional");
+  const blackOrAfricanAmerican = parseBooleanField(context, "blackOrAfricanAmerican", "optional");
+  const nativeHawaiianOrOtherPacificIslander = parseBooleanField(
+    context,
+    "nativeHawaiianOrOtherPacificIslander",
+    "optional",
+  );
+  const white = parseBooleanField(context, "white", "optional");
+  const demographicRaceTwoOrMoreRaces = parseBooleanField(
+    context,
+    "demographicRaceTwoOrMoreRaces",
+    "optional",
+  );
+  const hispanicOrLatinoEthnicity = parseBooleanField(
+    context,
+    "hispanicOrLatinoEthnicity",
+    "optional",
+  );
+  const countryOfBirthCode = parseOptionalStringField(context, "countryOfBirthCode");
+  const stateOfBirthAbbreviation = parseOptionalStringField(context, "stateOfBirthAbbreviation");
+  const cityOfBirth = parseOptionalStringField(context, "cityOfBirth");
+  const publicSchoolResidenceStatus = parseOptionalStringField(
+    context,
+    "publicSchoolResidenceStatus",
+  );
+
+  if (hasNewDiagnostics(context, diagnosticStart) || commonFields === undefined) {
+    return undefined;
+  }
+
+  return {
+    ...commonFields,
+    birthDate,
+    sex,
+    americanIndianOrAlaskaNative,
+    asian,
+    blackOrAfricanAmerican,
+    nativeHawaiianOrOtherPacificIslander,
+    white,
+    demographicRaceTwoOrMoreRaces,
+    hispanicOrLatinoEthnicity,
+    countryOfBirthCode,
+    stateOfBirthAbbreviation,
+    cityOfBirth,
+    publicSchoolResidenceStatus,
+  };
+}
+
+/** Parse one userProfiles.csv row into a typed OneRoster record. */
+export function parseUserProfileRecord(
+  context: RosteringRowContext,
+): OneRosterUserProfileRecord | undefined {
+  const diagnosticStart = context.diagnostics.length;
+  const commonFields = parseCommonRecordFields(context);
+  const userSourcedId = parseGuidField(context, "userSourcedId", "required");
+  const profileType = parseRequiredStringField(context, "profileType");
+  const vendorId = parseRequiredStringField(context, "vendorId");
+  const applicationId = parseOptionalStringField(context, "applicationId");
+  const description = parseOptionalStringField(context, "description");
+  const credentialType = parseRequiredStringField(context, "credentialType");
+  const username = parseRequiredStringField(context, "username");
+  const password = parseOptionalStringField(context, "password");
+
+  if (
+    hasNewDiagnostics(context, diagnosticStart) ||
+    commonFields === undefined ||
+    userSourcedId === undefined ||
+    profileType === undefined ||
+    vendorId === undefined ||
+    credentialType === undefined ||
+    username === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...commonFields,
+    userSourcedId,
+    profileType,
+    vendorId,
+    applicationId,
+    description,
+    credentialType,
+    username,
+    password,
   };
 }
 

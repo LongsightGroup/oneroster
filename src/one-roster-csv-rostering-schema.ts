@@ -110,6 +110,41 @@ export const enrollmentHeaders = [
   "endDate",
 ] as const;
 
+/** Spec-defined headers for demographics.csv in exact order. */
+export const demographicsHeaders = [
+  "sourcedId",
+  "status",
+  "dateLastModified",
+  "birthDate",
+  "sex",
+  "americanIndianOrAlaskaNative",
+  "asian",
+  "blackOrAfricanAmerican",
+  "nativeHawaiianOrOtherPacificIslander",
+  "white",
+  "demographicRaceTwoOrMoreRaces",
+  "hispanicOrLatinoEthnicity",
+  "countryOfBirthCode",
+  "stateOfBirthAbbreviation",
+  "cityOfBirth",
+  "publicSchoolResidenceStatus",
+] as const;
+
+/** Spec-defined headers for userProfiles.csv in exact order. */
+export const userProfileHeaders = [
+  "sourcedId",
+  "status",
+  "dateLastModified",
+  "userSourcedId",
+  "profileType",
+  "vendorId",
+  "applicationId",
+  "description",
+  "credentialType",
+  "username",
+  "password",
+] as const;
+
 /** All rostering table headers keyed by file name for tests and tooling. */
 export const rosteringTableHeaders: Readonly<
   Record<OneRosterCsvRosteringFileName, readonly string[]>
@@ -121,6 +156,8 @@ export const rosteringTableHeaders: Readonly<
   "users.csv": userHeaders,
   "roles.csv": roleHeaders,
   "enrollments.csv": enrollmentHeaders,
+  "demographics.csv": demographicsHeaders,
+  "userProfiles.csv": userProfileHeaders,
 };
 
 export const academicSessionTypeValues = [
@@ -154,6 +191,7 @@ export const roleValues = [
   "teacher",
 ] as const;
 export const enrollmentRoleValues = ["administrator", "proctor", "student", "teacher"] as const;
+export const demographicsSexValues = ["male", "female", "unspecified", "other"] as const;
 
 export type FieldRequiredness = "required" | "optional";
 

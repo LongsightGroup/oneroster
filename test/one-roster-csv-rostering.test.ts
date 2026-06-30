@@ -13,7 +13,9 @@ import {
 } from "./fixtures/one-roster-csv-package-fixtures.js";
 import {
   classHeader,
+  demographicsHeader,
   roleHeader,
+  userProfileHeader,
   userHeader,
 } from "./fixtures/one-roster-csv-rostering-headers.js";
 import {
@@ -25,10 +27,17 @@ import {
   usersOnlyPackage,
   validBulkRosteringFiles,
 } from "./fixtures/one-roster-csv-rostering-packages.js";
-import { usersCsv, validBulkUserRow } from "./fixtures/one-roster-csv-rostering-rows.js";
+import {
+  demographicsCsv,
+  demographicsRow,
+  userProfilesCsv,
+  userProfileRow,
+  usersCsv,
+  validBulkUserRow,
+} from "./fixtures/one-roster-csv-rostering-rows.js";
 
 describe("parseOneRosterCsvRosteringZip", () => {
-  it("parses valid bulk records for the seven core rostering files", () => {
+  it("parses valid bulk records for typed rostering files", () => {
     const result = parseOneRosterCsvRosteringZip(
       zipPackage({
         "manifest.csv": manifestCsv({ modes: rosteringModes("bulk") }),
@@ -45,18 +54,29 @@ describe("parseOneRosterCsvRosteringZip", () => {
     expect(packageValue.users).toHaveLength(1);
     expect(packageValue.roles).toHaveLength(1);
     expect(packageValue.enrollments).toHaveLength(1);
+    expect(packageValue.demographics).toHaveLength(1);
+    expect(packageValue.userProfiles).toHaveLength(1);
     expect(packageValue.academicSessions[0]?.lifecycle).toEqual({ mode: "bulk" });
     expect(packageValue.classes[0]?.termSourcedIds).toEqual(["as-1"]);
     expect(packageValue.users[0]?.enabledUser).toBe(true);
     expect(packageValue.users[0]?.grades).toEqual(["9"]);
     expect(packageValue.roles[0]?.role).toBe("teacher");
     expect(packageValue.enrollments[0]?.primary).toBe(true);
+    expect(packageValue.demographics[0]?.sex).toBe("unspecified");
+    expect(packageValue.demographics[0]?.asian).toBeUndefined();
+    expect(packageValue.userProfiles[0]?.credentialType).toBe("username");
   });
 
   it("parses valid delta lifecycle fields", () => {
     const result = parseOneRosterCsvRosteringZip(
       zipPackage({
-        "manifest.csv": manifestCsv({ modes: new Map([["users.csv", "delta"]]) }),
+        "manifest.csv": manifestCsv({
+          modes: new Map([
+            ["users.csv", "delta"],
+            ["demographics.csv", "delta"],
+            ["userProfiles.csv", "delta"],
+          ]),
+        }),
         "users.csv": usersCsv([
           [
             "user-2",
@@ -83,6 +103,22 @@ describe("parseOneRosterCsvRosteringZip", () => {
             "",
           ],
         ]),
+        "demographics.csv": demographicsCsv([
+          demographicsRow({
+            sourcedId: "user-2",
+            status: "tobedeleted",
+            dateLastModified: "2025-01-02T03:04:05.006Z",
+            sex: "other",
+          }),
+        ]),
+        "userProfiles.csv": userProfilesCsv([
+          userProfileRow({
+            sourcedId: "profile-2",
+            status: "active",
+            dateLastModified: "2025-01-02T03:04:05.006Z",
+            userSourcedId: "user-2",
+          }),
+        ]),
       }),
     );
 
@@ -94,6 +130,16 @@ describe("parseOneRosterCsvRosteringZip", () => {
       dateLastModified: "2025-01-02T03:04:05.006Z",
     });
     expect(packageValue.users[0]?.enabledUser).toBe(false);
+    expect(packageValue.demographics[0]?.lifecycle).toEqual({
+      mode: "delta",
+      status: "tobedeleted",
+      dateLastModified: "2025-01-02T03:04:05.006Z",
+    });
+    expect(packageValue.userProfiles[0]?.lifecycle).toEqual({
+      mode: "delta",
+      status: "active",
+      dateLastModified: "2025-01-02T03:04:05.006Z",
+    });
   });
 
   it("rejects lifecycle values that violate bulk and delta mode rules", () => {
@@ -250,9 +296,36 @@ describe("parseOneRosterCsvRosteringZip", () => {
     const invalidExtraHeaderResult = parseOneRosterCsvRosteringZip(
       usersOnlyPackage(csvDocument([...userHeader, "extra"], [[...validBulkUserRow(), "x"]])),
     );
+    const userProfileMetadataResult = parseOneRosterCsvRosteringZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: new Map([["userProfiles.csv", "bulk"]]) }),
+        "userProfiles.csv": csvDocument(
+          [...userProfileHeader, "metadata.tenant"],
+          [[...userProfileRow(), "tenant-1"]],
+        ),
+      }),
+    );
+    const demographicsMetadataInWrongPositionResult = parseOneRosterCsvRosteringZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: new Map([["demographics.csv", "bulk"]]) }),
+        "demographics.csv": csvDocument(
+          [
+            "sourcedId",
+            "status",
+            "dateLastModified",
+            "metadata.localCode",
+            ...demographicsHeader.slice(3),
+          ],
+          [["user-8", "", "", "local-8", ...demographicsRow().slice(3)]],
+        ),
+      }),
+    );
 
     expect(expectRosteringOk(metadataResult).users[0]?.metadata).toEqual({
       "metadata.localCode": "local-5",
+    });
+    expect(expectRosteringOk(userProfileMetadataResult).userProfiles[0]?.metadata).toEqual({
+      "metadata.tenant": "tenant-1",
     });
     expect(expectRosteringErr(wrongCaseResult)).toEqual(
       expect.arrayContaining([
@@ -289,6 +362,13 @@ describe("parseOneRosterCsvRosteringZip", () => {
         field: "extra",
       }),
     );
+    expect(expectRosteringErr(demographicsMetadataInWrongPositionResult)).toContainEqual(
+      expect.objectContaining({
+        code: "schema.metadata_column_position",
+        fileName: "demographics.csv",
+        field: "birthDate",
+      }),
+    );
   });
 
   it("validates required values, primitives, vocabularies, and list cells", () => {
@@ -297,7 +377,9 @@ describe("parseOneRosterCsvRosteringZip", () => {
         "manifest.csv": manifestCsv({
           modes: new Map([
             ["academicSessions.csv", "bulk"],
+            ["demographics.csv", "bulk"],
             ["roles.csv", "bulk"],
+            ["userProfiles.csv", "bulk"],
             ["users.csv", "bulk"],
           ]),
         }),
@@ -317,6 +399,24 @@ describe("parseOneRosterCsvRosteringZip", () => {
         ),
         "roles.csv": csvDocument(roleHeader, [
           ["role-2", "", "", "user-1", "ext:primary", "teacher", "", "", "org-1", ""],
+        ]),
+        "demographics.csv": demographicsCsv([
+          demographicsRow({
+            sourcedId: "user-8",
+            birthDate: "2025-02-30",
+            sex: "unknown",
+            asian: "yes",
+          }),
+        ]),
+        "userProfiles.csv": userProfilesCsv([
+          userProfileRow({
+            sourcedId: "profile-8",
+            userSourcedId: "",
+            profileType: "",
+            vendorId: "",
+            credentialType: "",
+            username: "",
+          }),
         ]),
         "users.csv": usersCsv([
           [
@@ -360,6 +460,25 @@ describe("parseOneRosterCsvRosteringZip", () => {
         "row.invalid_list",
       ]),
     );
+    expect(expectRosteringErr(result)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "row.invalid_enum",
+          fileName: "demographics.csv",
+          field: "sex",
+        }),
+        expect.objectContaining({
+          code: "row.invalid_boolean",
+          fileName: "demographics.csv",
+          field: "asian",
+        }),
+        expect.objectContaining({
+          code: "row.missing_required_value",
+          fileName: "userProfiles.csv",
+          field: "username",
+        }),
+      ]),
+    );
   });
 
   it("accepts ext vocabulary only on spec-allowed rostering fields", () => {
@@ -394,8 +513,15 @@ describe("parseOneRosterCsvRosteringZip", () => {
         ]),
       }),
     );
+    const demographicsResult = parseOneRosterCsvRosteringZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: new Map([["demographics.csv", "bulk"]]) }),
+        "demographics.csv": demographicsCsv([demographicsRow({ sex: "ext:nonBinary" })]),
+      }),
+    );
 
     expect(expectRosteringOk(classResult).classes[0]?.classType).toBe("ext:lab");
+    expect(expectRosteringOk(demographicsResult).demographics[0]?.sex).toBe("ext:nonBinary");
     expect(expectRosteringErr(roleTypeResult)).toContainEqual(
       expect.objectContaining({
         code: "row.invalid_enum",
@@ -432,8 +558,30 @@ describe("parseOneRosterCsvRosteringZip", () => {
 
   it("does not expose raw row values in diagnostics", () => {
     const result = parseOneRosterCsvRosteringZip(
-      usersOnlyPackage(
-        usersCsv([
+      zipPackage({
+        "manifest.csv": manifestCsv({
+          modes: new Map([
+            ["demographics.csv", "bulk"],
+            ["userProfiles.csv", "bulk"],
+            ["users.csv", "bulk"],
+          ]),
+        }),
+        "demographics.csv": demographicsCsv([
+          demographicsRow({
+            sourcedId: "private-demographic-user",
+            sex: "private-demographic-sex",
+            asian: "private-demographic-race",
+          }),
+        ]),
+        "userProfiles.csv": userProfilesCsv([
+          userProfileRow({
+            sourcedId: "profile-sensitive",
+            userSourcedId: "bad|profile-user",
+            username: "sensitive-profile-username",
+            password: "secret-profile-password",
+          }),
+        ]),
+        "users.csv": usersCsv([
           [
             "private|user",
             "",
@@ -459,12 +607,18 @@ describe("parseOneRosterCsvRosteringZip", () => {
             "",
           ],
         ]),
-      ),
+      }),
     );
 
     const diagnosticsJson = JSON.stringify(expectRosteringErr(result));
 
     expect(diagnosticsJson).not.toContain("private|user");
     expect(diagnosticsJson).not.toContain("credential-user");
+    expect(diagnosticsJson).not.toContain("private-demographic-user");
+    expect(diagnosticsJson).not.toContain("private-demographic-sex");
+    expect(diagnosticsJson).not.toContain("private-demographic-race");
+    expect(diagnosticsJson).not.toContain("bad|profile-user");
+    expect(diagnosticsJson).not.toContain("sensitive-profile-username");
+    expect(diagnosticsJson).not.toContain("secret-profile-password");
   });
 });

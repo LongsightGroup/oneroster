@@ -4,31 +4,8 @@ import {
   type OneRosterCsvPackageOptions,
 } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
-import type { OneRosterCsvTable } from "./one-roster-csv-table.js";
-import type { RosteringRowContext } from "./one-roster-csv-rostering-context.js";
-import { validateRosteringHeader } from "./one-roster-csv-rostering-header.js";
-import {
-  parseAcademicSessionRecord,
-  parseClassRecord,
-  parseCourseRecord,
-  parseEnrollmentRecord,
-  parseOrgRecord,
-  parseRoleRecord,
-  parseUserRecord,
-} from "./one-roster-csv-rostering-record-engine.js";
-import {
-  academicSessionHeaders,
-  classHeaders,
-  courseHeaders,
-  enrollmentHeaders,
-  orgHeaders,
-  roleHeaders,
-  userHeaders,
-} from "./one-roster-csv-rostering-schema.js";
-import type {
-  OneRosterCsvRosteringFileName,
-  OneRosterCsvRosteringPackage,
-} from "./one-roster-csv-rostering-types.js";
+import { parseRosteringPackageRecords } from "./one-roster-csv-rostering-tables.js";
+import type { OneRosterCsvRosteringPackage } from "./one-roster-csv-rostering-types.js";
 import { err, ok, type Result } from "./result.js";
 
 export type {
@@ -45,6 +22,8 @@ export type {
   OneRosterCsvRosteringPackage,
   OneRosterCsvRosteringRecordBase,
   OneRosterCsvRowLifecycle,
+  OneRosterDemographicsRecord,
+  OneRosterDemographicsSex,
   OneRosterEnrollmentRecord,
   OneRosterEnrollmentRole,
   OneRosterExtensionVocabularyToken,
@@ -53,6 +32,7 @@ export type {
   OneRosterRole,
   OneRosterRoleRecord,
   OneRosterRoleType,
+  OneRosterUserProfileRecord,
   OneRosterUserRecord,
 } from "./one-roster-csv-rostering-types.js";
 
@@ -75,56 +55,7 @@ export function parseOneRosterCsvRosteringPackage(
   packageValue: OneRosterCsvPackage,
 ): Result<OneRosterCsvRosteringPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   const diagnostics: OneRosterCsvPackageDiagnostic[] = [];
-
-  const academicSessions = parseRosteringTable(
-    packageValue,
-    "academicSessions.csv",
-    academicSessionHeaders,
-    parseAcademicSessionRecord,
-    diagnostics,
-  );
-  const orgs = parseRosteringTable(
-    packageValue,
-    "orgs.csv",
-    orgHeaders,
-    parseOrgRecord,
-    diagnostics,
-  );
-  const courses = parseRosteringTable(
-    packageValue,
-    "courses.csv",
-    courseHeaders,
-    parseCourseRecord,
-    diagnostics,
-  );
-  const classes = parseRosteringTable(
-    packageValue,
-    "classes.csv",
-    classHeaders,
-    parseClassRecord,
-    diagnostics,
-  );
-  const users = parseRosteringTable(
-    packageValue,
-    "users.csv",
-    userHeaders,
-    parseUserRecord,
-    diagnostics,
-  );
-  const roles = parseRosteringTable(
-    packageValue,
-    "roles.csv",
-    roleHeaders,
-    parseRoleRecord,
-    diagnostics,
-  );
-  const enrollments = parseRosteringTable(
-    packageValue,
-    "enrollments.csv",
-    enrollmentHeaders,
-    parseEnrollmentRecord,
-    diagnostics,
-  );
+  const records = parseRosteringPackageRecords(packageValue, diagnostics);
 
   if (diagnostics.length > 0) {
     return err(diagnostics);
@@ -132,63 +63,6 @@ export function parseOneRosterCsvRosteringPackage(
 
   return ok({
     rawPackage: packageValue,
-    academicSessions,
-    orgs,
-    courses,
-    classes,
-    users,
-    roles,
-    enrollments,
+    ...records,
   });
-}
-
-function parseRosteringTable<TRecord>(
-  packageValue: OneRosterCsvPackage,
-  fileName: OneRosterCsvRosteringFileName,
-  expectedHeaders: readonly string[],
-  parseRecord: (context: RosteringRowContext) => TRecord | undefined,
-  diagnostics: OneRosterCsvPackageDiagnostic[],
-): ReadonlyArray<TRecord> {
-  const table = findTable(packageValue, fileName);
-
-  if (table === undefined) {
-    return [];
-  }
-
-  const metadataHeaders = validateRosteringHeader(table, expectedHeaders, diagnostics);
-
-  if (metadataHeaders === undefined) {
-    return [];
-  }
-
-  const records: TRecord[] = [];
-
-  for (const row of table.rows) {
-    const context: RosteringRowContext = {
-      table,
-      row,
-      metadataHeaders,
-      diagnostics,
-    };
-    const record = parseRecord(context);
-
-    if (record !== undefined) {
-      records.push(record);
-    }
-  }
-
-  return records;
-}
-
-function findTable(
-  packageValue: OneRosterCsvPackage,
-  fileName: OneRosterCsvRosteringFileName,
-): OneRosterCsvTable | undefined {
-  for (const table of packageValue.tables) {
-    if (table.fileName === fileName) {
-      return table;
-    }
-  }
-
-  return undefined;
 }

@@ -25,12 +25,16 @@ import {
   classesCsv,
   courseRow,
   coursesCsv,
+  demographicsCsv,
+  demographicsRow,
   enrollmentRow,
   enrollmentsCsv,
   orgRow,
   orgsCsv,
   roleRow,
   rolesCsv,
+  userProfileRow,
+  userProfilesCsv,
   userRow,
   usersCsv,
 } from "./fixtures/one-roster-csv-rostering-rows.js";
@@ -63,6 +67,12 @@ describe("validateOneRosterCsvRosteringPackage", () => {
     expect(
       validatedPackage.indexes.enrollmentsBySourcedId.get(fixtureGuid("enrollment-1"))?.role,
     ).toBe("teacher");
+    expect(validatedPackage.indexes.demographicsBySourcedId.get(fixtureGuid("user-1"))?.sex).toBe(
+      "female",
+    );
+    expect(
+      validatedPackage.indexes.userProfilesBySourcedId.get(fixtureGuid("profile-1"))?.userSourcedId,
+    ).toBe("user-1");
   });
 
   it("rejects duplicate sourcedId values within each typed rostering file", () => {
@@ -114,75 +124,97 @@ describe("validateOneRosterCsvRosteringPackage", () => {
             userSourcedId: "user-1",
           }),
         ]),
+        "demographics.csv": demographicsCsv([
+          demographicsRow({ sourcedId: "user-1" }),
+          demographicsRow({ sourcedId: "user-1" }),
+        ]),
+        "userProfiles.csv": userProfilesCsv([
+          userProfileRow({ sourcedId: "profile-1", userSourcedId: "user-1" }),
+          userProfileRow({ sourcedId: "profile-1", userSourcedId: "user-1" }),
+        ]),
       }),
     );
 
     const diagnostics = expectValidatedErr(result);
 
-    for (const fileName of [
-      "academicSessions.csv",
-      "orgs.csv",
-      "courses.csv",
-      "classes.csv",
-      "users.csv",
-      "roles.csv",
-      "enrollments.csv",
-    ] as const) {
-      expect(diagnostics).toContainEqual(
+    expect(diagnostics).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           code: "reference.duplicate_sourced_id",
-          fileName,
+          fileName: "academicSessions.csv",
           rowNumber: 3,
           field: "sourcedId",
           actual: "duplicate",
         }),
-      );
-    }
-  });
-
-  it("rejects bulk references to absent target files", () => {
-    const result = parseAndValidateOneRosterCsvRosteringZip(
-      zipPackage({
-        "manifest.csv": manifestCsv({ modes: new Map([["classes.csv", "bulk"]]) }),
-        "classes.csv": classesCsv([
-          classRow({
-            courseSourcedId: "course-missing",
-            schoolSourcedId: "org-missing",
-            termSourcedIds: "as-missing",
-          }),
-        ]),
-      }),
-    );
-
-    expect(expectValidatedErr(result)).toEqual(
-      expect.arrayContaining([
         expect.objectContaining({
-          code: "reference.missing_target_file",
-          fileName: "classes.csv",
-          rowNumber: 2,
-          field: "courseSourcedId",
-          expected: "courses.csv",
-          actual: "absent",
+          code: "reference.duplicate_sourced_id",
+          fileName: "orgs.csv",
+          rowNumber: 3,
+          field: "sourcedId",
+          actual: "duplicate",
         }),
         expect.objectContaining({
-          code: "reference.missing_target_file",
-          fileName: "classes.csv",
-          rowNumber: 2,
-          field: "schoolSourcedId",
-          expected: "orgs.csv",
-          actual: "absent",
+          code: "reference.duplicate_sourced_id",
+          fileName: "courses.csv",
+          rowNumber: 3,
+          field: "sourcedId",
+          actual: "duplicate",
         }),
         expect.objectContaining({
-          code: "reference.missing_target_file",
+          code: "reference.duplicate_sourced_id",
           fileName: "classes.csv",
-          rowNumber: 2,
-          field: "termSourcedIds",
-          expected: "academicSessions.csv",
-          actual: "absent",
+          rowNumber: 3,
+          field: "sourcedId",
+          actual: "duplicate",
+        }),
+        expect.objectContaining({
+          code: "reference.duplicate_sourced_id",
+          fileName: "users.csv",
+          rowNumber: 3,
+          field: "sourcedId",
+          actual: "duplicate",
+        }),
+        expect.objectContaining({
+          code: "reference.duplicate_sourced_id",
+          fileName: "roles.csv",
+          rowNumber: 3,
+          field: "sourcedId",
+          actual: "duplicate",
+        }),
+        expect.objectContaining({
+          code: "reference.duplicate_sourced_id",
+          fileName: "enrollments.csv",
+          rowNumber: 3,
+          field: "sourcedId",
+          actual: "duplicate",
+        }),
+        expect.objectContaining({
+          code: "reference.duplicate_sourced_id",
+          fileName: "demographics.csv",
+          rowNumber: 3,
+          field: "sourcedId",
+          actual: "duplicate",
+        }),
+        expect.objectContaining({
+          code: "reference.duplicate_sourced_id",
+          fileName: "userProfiles.csv",
+          rowNumber: 3,
+          field: "sourcedId",
+          actual: "duplicate",
         }),
       ]),
     );
   });
+
+  for (const scenario of missingTargetFileScenarios()) {
+    it(`rejects bulk references to absent target files for ${scenario.name}`, () => {
+      const result = parseAndValidateOneRosterCsvRosteringZip(zipPackage(scenario.files));
+
+      expect(expectValidatedErr(result)).toEqual(
+        expect.arrayContaining([...scenario.expectedDiagnostics]),
+      );
+    });
+  }
 
   for (const scenario of missingReferenceRecordScenarios()) {
     it(`rejects missing target records for ${scenario.name}`, () => {
@@ -239,7 +271,7 @@ describe("validateOneRosterCsvRosteringPackage", () => {
     );
   });
 
-  it("does not validate roles.userProfileSourcedId until userProfiles.csv is typed", () => {
+  it("validates roles.userProfileSourcedId against typed userProfiles.csv records", () => {
     const result = parseAndValidateOneRosterCsvRosteringZip(
       zipPackage({
         "manifest.csv": manifestCsv({
@@ -247,6 +279,7 @@ describe("validateOneRosterCsvRosteringPackage", () => {
             ["orgs.csv", "bulk"],
             ["users.csv", "bulk"],
             ["roles.csv", "bulk"],
+            ["userProfiles.csv", "bulk"],
           ]),
         }),
         "orgs.csv": orgsCsv([orgRow({ sourcedId: "org-1" })]),
@@ -259,11 +292,21 @@ describe("validateOneRosterCsvRosteringPackage", () => {
             userProfileSourcedId: "profile-not-yet-typed",
           }),
         ]),
+        "userProfiles.csv": userProfilesCsv([
+          userProfileRow({ sourcedId: "profile-1", userSourcedId: "user-1" }),
+        ]),
       }),
     );
 
-    expect(expectValidatedOk(result).rosteringPackage.roles[0]?.userProfileSourcedId).toBe(
-      "profile-not-yet-typed",
+    expect(expectValidatedErr(result)).toContainEqual(
+      expect.objectContaining({
+        code: "reference.missing_target_record",
+        fileName: "roles.csv",
+        rowNumber: 2,
+        field: "userProfileSourcedId",
+        expected: "userProfiles.csv",
+        actual: "missing",
+      }),
     );
   });
 
@@ -280,10 +323,19 @@ describe("validateOneRosterCsvRosteringPackage", () => {
         "manifest.csv": manifestCsv({
           modes: new Map([
             ["orgs.csv", "bulk"],
+            ["userProfiles.csv", "bulk"],
             ["users.csv", "bulk"],
           ]),
         }),
         "orgs.csv": orgsCsv([orgRow({ sourcedId: "org-available" })]),
+        "userProfiles.csv": userProfilesCsv([
+          userProfileRow({
+            sourcedId: "private-profile-id",
+            userSourcedId: "private-profile-user-id",
+            username: "private-profile-username",
+            password: "private-profile-password",
+          }),
+        ]),
         "users.csv": usersCsv([
           userRow({
             sourcedId: "private-user-id",
@@ -305,8 +357,130 @@ describe("validateOneRosterCsvRosteringPackage", () => {
     expect(diagnosticsJson).not.toContain("private-username");
     expect(diagnosticsJson).not.toContain("private-duplicate-username");
     expect(diagnosticsJson).not.toContain("private-org-id");
+    expect(diagnosticsJson).not.toContain("private-profile-id");
+    expect(diagnosticsJson).not.toContain("private-profile-user-id");
+    expect(diagnosticsJson).not.toContain("private-profile-username");
+    expect(diagnosticsJson).not.toContain("private-profile-password");
   });
 });
+
+type MissingTargetFileScenario = {
+  readonly name: string;
+  readonly files: Readonly<Record<string, string>>;
+  readonly expectedDiagnostics: readonly [
+    ReturnType<typeof expect.objectContaining>,
+    ...ReturnType<typeof expect.objectContaining>[],
+  ];
+};
+
+function missingTargetFileScenarios(): readonly MissingTargetFileScenario[] {
+  return [
+    {
+      name: "classes.csv cross-file references",
+      files: {
+        "manifest.csv": manifestCsv({ modes: new Map([["classes.csv", "bulk"]]) }),
+        "classes.csv": classesCsv([
+          classRow({
+            courseSourcedId: "course-missing",
+            schoolSourcedId: "org-missing",
+            termSourcedIds: "as-missing",
+          }),
+        ]),
+      },
+      expectedDiagnostics: [
+        expect.objectContaining({
+          code: "reference.missing_target_file",
+          fileName: "classes.csv",
+          rowNumber: 2,
+          field: "courseSourcedId",
+          expected: "courses.csv",
+          actual: "absent",
+        }),
+        expect.objectContaining({
+          code: "reference.missing_target_file",
+          fileName: "classes.csv",
+          rowNumber: 2,
+          field: "schoolSourcedId",
+          expected: "orgs.csv",
+          actual: "absent",
+        }),
+        expect.objectContaining({
+          code: "reference.missing_target_file",
+          fileName: "classes.csv",
+          rowNumber: 2,
+          field: "termSourcedIds",
+          expected: "academicSessions.csv",
+          actual: "absent",
+        }),
+      ],
+    },
+    {
+      name: "user-backed demographics and userProfiles",
+      files: {
+        "manifest.csv": manifestCsv({
+          modes: new Map([
+            ["demographics.csv", "bulk"],
+            ["userProfiles.csv", "bulk"],
+          ]),
+        }),
+        "demographics.csv": demographicsCsv([demographicsRow({ sourcedId: "user-missing" })]),
+        "userProfiles.csv": userProfilesCsv([
+          userProfileRow({ sourcedId: "profile-1", userSourcedId: "user-missing" }),
+        ]),
+      },
+      expectedDiagnostics: [
+        expect.objectContaining({
+          code: "reference.missing_target_file",
+          fileName: "demographics.csv",
+          rowNumber: 2,
+          field: "sourcedId",
+          expected: "users.csv",
+          actual: "absent",
+        }),
+        expect.objectContaining({
+          code: "reference.missing_target_file",
+          fileName: "userProfiles.csv",
+          rowNumber: 2,
+          field: "userSourcedId",
+          expected: "users.csv",
+          actual: "absent",
+        }),
+      ],
+    },
+    {
+      name: "roles.userProfileSourcedId",
+      files: {
+        "manifest.csv": manifestCsv({
+          modes: new Map([
+            ["orgs.csv", "bulk"],
+            ["roles.csv", "bulk"],
+            ["users.csv", "bulk"],
+          ]),
+        }),
+        "orgs.csv": orgsCsv([orgRow({ sourcedId: "org-1" })]),
+        "roles.csv": rolesCsv([
+          roleRow({
+            sourcedId: "role-1",
+            userSourcedId: "user-1",
+            orgSourcedId: "org-1",
+            userProfileSourcedId: "profile-missing",
+          }),
+        ]),
+        "users.csv": usersCsv([userRow({ sourcedId: "user-1", username: "user-1" })]),
+      },
+      expectedDiagnostics: [
+        expect.objectContaining({
+          code: "reference.missing_target_file",
+          fileName: "roles.csv",
+          rowNumber: 2,
+          field: "userProfileSourcedId",
+          expected: "userProfiles.csv",
+          actual: "absent",
+        }),
+      ],
+    },
+  ];
+}
 
 type MissingReferenceRecordScenario = {
   readonly name: string;
@@ -473,6 +647,23 @@ function missingReferenceRecordScenarios(): readonly MissingReferenceRecordScena
       }),
     },
     {
+      name: "roles.userProfileSourcedId",
+      sourceFile: "roles.csv",
+      rowNumber: 2,
+      field: "userProfileSourcedId",
+      targetFile: "userProfiles.csv",
+      files: validGraphWith({
+        "roles.csv": rolesCsv([
+          roleRow({
+            sourcedId: "role-1",
+            userSourcedId: "user-1",
+            orgSourcedId: "org-1",
+            userProfileSourcedId: "profile-missing",
+          }),
+        ]),
+      }),
+    },
+    {
       name: "enrollments.classSourcedId",
       sourceFile: "enrollments.csv",
       rowNumber: 2,
@@ -520,6 +711,28 @@ function missingReferenceRecordScenarios(): readonly MissingReferenceRecordScena
             schoolSourcedId: "org-1",
             userSourcedId: "user-missing",
           }),
+        ]),
+      }),
+    },
+    {
+      name: "demographics.sourcedId",
+      sourceFile: "demographics.csv",
+      rowNumber: 2,
+      field: "sourcedId",
+      targetFile: "users.csv",
+      files: validGraphWith({
+        "demographics.csv": demographicsCsv([demographicsRow({ sourcedId: "user-missing" })]),
+      }),
+    },
+    {
+      name: "userProfiles.userSourcedId",
+      sourceFile: "userProfiles.csv",
+      rowNumber: 2,
+      field: "userSourcedId",
+      targetFile: "users.csv",
+      files: validGraphWith({
+        "userProfiles.csv": userProfilesCsv([
+          userProfileRow({ sourcedId: "profile-1", userSourcedId: "user-missing" }),
         ]),
       }),
     },

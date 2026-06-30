@@ -6,18 +6,22 @@ import {
   classesCsv,
   courseRow,
   coursesCsv,
+  demographicsCsv,
+  demographicsRow,
   enrollmentRow,
   enrollmentsCsv,
   orgRow,
   orgsCsv,
   roleRow,
   rolesCsv,
+  userProfileRow,
+  userProfilesCsv,
   usersCsv,
   userRow,
   validBulkUserRow,
 } from "./one-roster-csv-rostering-rows.js";
 
-/** Build manifest file modes for all seven core rostering CSV files. */
+/** Build manifest file modes for all typed rostering CSV files. */
 export function rosteringModes(mode: "bulk" | "delta"): ReadonlyMap<string, string> {
   return new Map([
     ["academicSessions.csv", mode],
@@ -27,10 +31,12 @@ export function rosteringModes(mode: "bulk" | "delta"): ReadonlyMap<string, stri
     ["users.csv", mode],
     ["roles.csv", mode],
     ["enrollments.csv", mode],
+    ["demographics.csv", mode],
+    ["userProfiles.csv", mode],
   ]);
 }
 
-/** Build a minimal valid bulk rostering package with one record per file. */
+/** Build a minimal valid bulk typed rostering package with one record per file. */
 export function validBulkRosteringFiles(): Readonly<Record<string, string>> {
   return {
     "academicSessions.csv": academicSessionsCsv([
@@ -64,6 +70,24 @@ export function validBulkRosteringFiles(): Readonly<Record<string, string>> {
     ]),
     "enrollments.csv": enrollmentsCsv([
       ["enrollment-1", "", "", "class-1", "org-1", "user-1", "teacher", "true", "2024-08-01", ""],
+    ]),
+    "demographics.csv": demographicsCsv([
+      ["user-1", "", "", "2010-01-02", "unspecified", "", "", "", "", "", "", "", "", "", "", ""],
+    ]),
+    "userProfiles.csv": userProfilesCsv([
+      [
+        "profile-1",
+        "",
+        "",
+        "user-1",
+        "platform",
+        "vendor-1",
+        "",
+        "",
+        "username",
+        "profile-user-1",
+        "",
+      ],
     ]),
   };
 }
@@ -103,7 +127,12 @@ export function validBulkGraphFiles(): Readonly<Record<string, string>> {
       }),
     ]),
     "roles.csv": rolesCsv([
-      roleRow({ sourcedId: "role-1", userSourcedId: "user-1", orgSourcedId: "org-1" }),
+      roleRow({
+        sourcedId: "role-1",
+        userSourcedId: "user-1",
+        orgSourcedId: "org-1",
+        userProfileSourcedId: "profile-1",
+      }),
     ]),
     "enrollments.csv": enrollmentsCsv([
       enrollmentRow({
@@ -112,6 +141,10 @@ export function validBulkGraphFiles(): Readonly<Record<string, string>> {
         schoolSourcedId: "org-1",
         userSourcedId: "user-1",
       }),
+    ]),
+    "demographics.csv": demographicsCsv([demographicsRow({ sourcedId: "user-1", sex: "female" })]),
+    "userProfiles.csv": userProfilesCsv([
+      userProfileRow({ sourcedId: "profile-1", userSourcedId: "user-1" }),
     ]),
   };
 }

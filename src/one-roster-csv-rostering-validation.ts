@@ -5,19 +5,28 @@ import {
   type OneRosterCsvPackageDiagnostic,
 } from "./one-roster-csv-package-diagnostic.js";
 import type { OneRosterGuid } from "./one-roster-csv-primitive.js";
+import {
+  academicSessionsRecordSet,
+  buildRosteringReferenceIndexes,
+  classesRecordSet,
+  coursesRecordSet,
+  demographicsRecordSet,
+  enrollmentsRecordSet,
+  orgsRecordSet,
+  rolesRecordSet,
+  type RosteringRecordSet,
+  userProfilesRecordSet,
+  usersRecordSet,
+} from "./one-roster-csv-rostering-tables.js";
 import type {
-  OneRosterAcademicSessionRecord,
-  OneRosterClassRecord,
-  OneRosterCourseRecord,
   OneRosterCsvRosteringFileName,
   OneRosterCsvRosteringPackage,
   OneRosterCsvRosteringRecordBase,
-  OneRosterEnrollmentRecord,
-  OneRosterOrgRecord,
-  OneRosterRoleRecord,
-  OneRosterUserRecord,
+  OneRosterCsvRosteringReferenceIndexes,
 } from "./one-roster-csv-rostering-types.js";
 import { err, ok, type Result } from "./result.js";
+
+export type { OneRosterCsvRosteringReferenceIndexes } from "./one-roster-csv-rostering-types.js";
 
 /** Controls which row lifecycles participate in reference validation. */
 export type OneRosterCsvReferenceValidationMode = "bulkOnly" | "allRows";
@@ -25,17 +34,6 @@ export type OneRosterCsvReferenceValidationMode = "bulkOnly" | "allRows";
 /** Options for semantic validation of typed OneRoster CSV rostering records. */
 export type OneRosterCsvRosteringValidationOptions = {
   readonly referenceMode?: OneRosterCsvReferenceValidationMode;
-};
-
-/** Lookup indexes for typed OneRoster CSV rostering records keyed by sourcedId. */
-export type OneRosterCsvRosteringReferenceIndexes = {
-  readonly academicSessionsBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterAcademicSessionRecord>;
-  readonly orgsBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterOrgRecord>;
-  readonly coursesBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterCourseRecord>;
-  readonly classesBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterClassRecord>;
-  readonly usersBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterUserRecord>;
-  readonly rolesBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterRoleRecord>;
-  readonly enrollmentsBySourcedId: ReadonlyMap<OneRosterGuid, OneRosterEnrollmentRecord>;
 };
 
 /** OneRoster CSV rostering package that has passed duplicate and reference validation. */
@@ -51,23 +49,9 @@ type ReferenceValidationContext = {
   readonly referenceMode: OneRosterCsvReferenceValidationMode;
 };
 
-type RosteringRecordSet<TRecord extends OneRosterCsvRosteringRecordBase> = {
-  readonly fileName: OneRosterCsvRosteringFileName;
-  readonly getRecords: (packageValue: OneRosterCsvRosteringPackage) => ReadonlyArray<TRecord>;
-  readonly getIndex: (
-    indexes: OneRosterCsvRosteringReferenceIndexes,
-  ) => ReadonlyMap<OneRosterGuid, TRecord>;
-};
-
 type ReferenceRule = {
   readonly validate: (context: ReferenceValidationContext) => void;
 };
-
-function defineRecordSet<TRecord extends OneRosterCsvRosteringRecordBase>(
-  recordSet: RosteringRecordSet<TRecord>,
-): RosteringRecordSet<TRecord> {
-  return recordSet;
-}
 
 function defineReferenceRule<TRecord extends OneRosterCsvRosteringRecordBase>(rule: {
   readonly source: RosteringRecordSet<TRecord>;
@@ -116,48 +100,6 @@ function defineReferenceRule<TRecord extends OneRosterCsvRosteringRecordBase>(ru
     },
   };
 }
-
-const academicSessionsRecordSet = defineRecordSet<OneRosterAcademicSessionRecord>({
-  fileName: "academicSessions.csv",
-  getRecords: (packageValue) => packageValue.academicSessions,
-  getIndex: (indexes) => indexes.academicSessionsBySourcedId,
-});
-
-const orgsRecordSet = defineRecordSet<OneRosterOrgRecord>({
-  fileName: "orgs.csv",
-  getRecords: (packageValue) => packageValue.orgs,
-  getIndex: (indexes) => indexes.orgsBySourcedId,
-});
-
-const coursesRecordSet = defineRecordSet<OneRosterCourseRecord>({
-  fileName: "courses.csv",
-  getRecords: (packageValue) => packageValue.courses,
-  getIndex: (indexes) => indexes.coursesBySourcedId,
-});
-
-const classesRecordSet = defineRecordSet<OneRosterClassRecord>({
-  fileName: "classes.csv",
-  getRecords: (packageValue) => packageValue.classes,
-  getIndex: (indexes) => indexes.classesBySourcedId,
-});
-
-const usersRecordSet = defineRecordSet<OneRosterUserRecord>({
-  fileName: "users.csv",
-  getRecords: (packageValue) => packageValue.users,
-  getIndex: (indexes) => indexes.usersBySourcedId,
-});
-
-const rolesRecordSet = defineRecordSet<OneRosterRoleRecord>({
-  fileName: "roles.csv",
-  getRecords: (packageValue) => packageValue.roles,
-  getIndex: (indexes) => indexes.rolesBySourcedId,
-});
-
-const enrollmentsRecordSet = defineRecordSet<OneRosterEnrollmentRecord>({
-  fileName: "enrollments.csv",
-  getRecords: (packageValue) => packageValue.enrollments,
-  getIndex: (indexes) => indexes.enrollmentsBySourcedId,
-});
 
 const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
   defineReferenceRule({
@@ -227,6 +169,12 @@ const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
     getReferenceValues: (record) => [record.orgSourcedId],
   }),
   defineReferenceRule({
+    source: rolesRecordSet,
+    field: "userProfileSourcedId",
+    target: userProfilesRecordSet,
+    getReferenceValues: (record) => optionalReference(record.userProfileSourcedId),
+  }),
+  defineReferenceRule({
     source: enrollmentsRecordSet,
     field: "classSourcedId",
     target: classesRecordSet,
@@ -240,6 +188,19 @@ const ROSTERING_REFERENCE_RULES: readonly ReferenceRule[] = [
   }),
   defineReferenceRule({
     source: enrollmentsRecordSet,
+    field: "userSourcedId",
+    target: usersRecordSet,
+    getReferenceValues: (record) => [record.userSourcedId],
+  }),
+  // demographics.csv sourcedId must match a users.csv sourcedId (1:1 extension of user identity).
+  defineReferenceRule({
+    source: demographicsRecordSet,
+    field: "sourcedId",
+    target: usersRecordSet,
+    getReferenceValues: (record) => [record.sourcedId],
+  }),
+  defineReferenceRule({
+    source: userProfilesRecordSet,
     field: "userSourcedId",
     target: usersRecordSet,
     getReferenceValues: (record) => [record.userSourcedId],
@@ -266,7 +227,7 @@ export function validateOneRosterCsvRosteringPackage(
   options: OneRosterCsvRosteringValidationOptions = {},
 ): Result<OneRosterCsvValidatedRosteringPackage, readonly OneRosterCsvPackageDiagnostic[]> {
   const diagnostics: OneRosterCsvPackageDiagnostic[] = [];
-  const indexes = buildReferenceIndexes(packageValue, diagnostics);
+  const indexes = buildRosteringReferenceIndexes(packageValue, diagnostics);
   const context: ReferenceValidationContext = {
     packageValue,
     indexes,
@@ -290,54 +251,6 @@ function validatePackageReferences(context: ReferenceValidationContext): void {
   for (const rule of ROSTERING_REFERENCE_RULES) {
     rule.validate(context);
   }
-}
-
-function buildReferenceIndexes(
-  packageValue: OneRosterCsvRosteringPackage,
-  diagnostics: OneRosterCsvPackageDiagnostic[],
-): OneRosterCsvRosteringReferenceIndexes {
-  return {
-    academicSessionsBySourcedId: buildRecordSetIndex(
-      academicSessionsRecordSet,
-      packageValue,
-      diagnostics,
-    ),
-    orgsBySourcedId: buildRecordSetIndex(orgsRecordSet, packageValue, diagnostics),
-    coursesBySourcedId: buildRecordSetIndex(coursesRecordSet, packageValue, diagnostics),
-    classesBySourcedId: buildRecordSetIndex(classesRecordSet, packageValue, diagnostics),
-    usersBySourcedId: buildRecordSetIndex(usersRecordSet, packageValue, diagnostics),
-    rolesBySourcedId: buildRecordSetIndex(rolesRecordSet, packageValue, diagnostics),
-    enrollmentsBySourcedId: buildRecordSetIndex(enrollmentsRecordSet, packageValue, diagnostics),
-  };
-}
-
-function buildRecordSetIndex<TRecord extends OneRosterCsvRosteringRecordBase>(
-  recordSet: RosteringRecordSet<TRecord>,
-  packageValue: OneRosterCsvRosteringPackage,
-  diagnostics: OneRosterCsvPackageDiagnostic[],
-): ReadonlyMap<OneRosterGuid, TRecord> {
-  const index = new Map<OneRosterGuid, TRecord>();
-
-  for (const record of recordSet.getRecords(packageValue)) {
-    if (index.has(record.sourcedId)) {
-      diagnostics.push(
-        packageDiagnostic({
-          code: "reference.duplicate_sourced_id",
-          message: "OneRoster sourcedId values must be unique within a CSV file.",
-          fileName: recordSet.fileName,
-          rowNumber: record.rowNumber,
-          field: "sourcedId",
-          expected: "unique sourcedId",
-          actual: "duplicate",
-        }),
-      );
-      continue;
-    }
-
-    index.set(record.sourcedId, record);
-  }
-
-  return index;
 }
 
 function optionalReference(value: OneRosterGuid | undefined): ReadonlyArray<OneRosterGuid> {

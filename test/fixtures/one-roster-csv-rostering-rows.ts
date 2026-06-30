@@ -3,9 +3,11 @@ import {
   academicSessionHeader,
   classHeader,
   courseHeader,
+  demographicsHeader,
   enrollmentHeader,
   orgHeader,
   roleHeader,
+  userProfileHeader,
   userHeader,
 } from "./one-roster-csv-rostering-headers.js";
 
@@ -62,6 +64,14 @@ export function rolesCsv(rows: ReadonlyArray<readonly string[]>): string {
 
 export function enrollmentsCsv(rows: ReadonlyArray<readonly string[]>): string {
   return csvDocument(enrollmentHeader, rows);
+}
+
+export function demographicsCsv(rows: ReadonlyArray<readonly string[]>): string {
+  return csvDocument(demographicsHeader, rows);
+}
+
+export function userProfilesCsv(rows: ReadonlyArray<readonly string[]>): string {
+  return csvDocument(userProfileHeader, rows);
 }
 
 export function academicSessionRow(opts: {
@@ -237,5 +247,75 @@ export function enrollmentRow(
     "true",
     "2024-08-01",
     "",
+  ];
+}
+
+export function demographicsRow(
+  opts: {
+    readonly sourcedId?: string;
+    readonly status?: string;
+    readonly dateLastModified?: string;
+    readonly birthDate?: string;
+    readonly sex?: string;
+    readonly americanIndianOrAlaskaNative?: string;
+    readonly asian?: string;
+    readonly blackOrAfricanAmerican?: string;
+    readonly nativeHawaiianOrOtherPacificIslander?: string;
+    readonly white?: string;
+    readonly demographicRaceTwoOrMoreRaces?: string;
+    readonly hispanicOrLatinoEthnicity?: string;
+    readonly countryOfBirthCode?: string;
+    readonly stateOfBirthAbbreviation?: string;
+    readonly cityOfBirth?: string;
+    readonly publicSchoolResidenceStatus?: string;
+  } = {},
+): readonly string[] {
+  return [
+    opts.sourcedId ?? "user-1",
+    opts.status ?? "",
+    opts.dateLastModified ?? "",
+    opts.birthDate ?? "",
+    opts.sex ?? "",
+    opts.americanIndianOrAlaskaNative ?? "",
+    opts.asian ?? "",
+    opts.blackOrAfricanAmerican ?? "",
+    opts.nativeHawaiianOrOtherPacificIslander ?? "",
+    opts.white ?? "",
+    opts.demographicRaceTwoOrMoreRaces ?? "",
+    opts.hispanicOrLatinoEthnicity ?? "",
+    opts.countryOfBirthCode ?? "",
+    opts.stateOfBirthAbbreviation ?? "",
+    opts.cityOfBirth ?? "",
+    opts.publicSchoolResidenceStatus ?? "",
+  ];
+}
+
+export function userProfileRow(
+  opts: {
+    readonly sourcedId?: string;
+    readonly status?: string;
+    readonly dateLastModified?: string;
+    readonly userSourcedId?: string;
+    readonly profileType?: string;
+    readonly vendorId?: string;
+    readonly applicationId?: string;
+    readonly description?: string;
+    readonly credentialType?: string;
+    readonly username?: string;
+    readonly password?: string;
+  } = {},
+): readonly string[] {
+  return [
+    opts.sourcedId ?? "profile-1",
+    opts.status ?? "",
+    opts.dateLastModified ?? "",
+    opts.userSourcedId ?? "user-1",
+    opts.profileType ?? "platform",
+    opts.vendorId ?? "vendor-1",
+    opts.applicationId ?? "",
+    opts.description ?? "",
+    opts.credentialType ?? "username",
+    opts.username ?? "profile-user-1",
+    opts.password ?? "",
   ];
 }
