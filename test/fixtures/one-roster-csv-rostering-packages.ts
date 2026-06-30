@@ -128,6 +128,11 @@ export function validBulkGraphFiles(): Readonly<Record<string, string>> {
     ]),
     "roles.csv": rolesCsv([
       roleRow({
+        sourcedId: "role-agent",
+        userSourcedId: "user-agent",
+        orgSourcedId: "org-1",
+      }),
+      roleRow({
         sourcedId: "role-1",
         userSourcedId: "user-1",
         orgSourcedId: "org-1",

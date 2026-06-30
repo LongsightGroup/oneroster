@@ -116,8 +116,11 @@ function collectOneRosterCsvFullValidation(
 
   validateOneRosterCsvFullSemanticRules({
     packageValue,
+    rosteringIndexes: rosteringValidation.indexes,
     gradebookIndexes: gradebookValidation.indexes,
+    resourcesIndexes: resourcesValidation.indexes,
     diagnostics,
+    referenceMode: options.referenceMode ?? "bulkOnly",
   });
 
   return {

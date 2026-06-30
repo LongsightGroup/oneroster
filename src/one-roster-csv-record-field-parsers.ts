@@ -26,6 +26,7 @@ import {
   type OneRosterCsvFieldRequiredness,
 } from "./one-roster-csv-record-schema.js";
 import type { OneRosterExtensionVocabularyToken } from "./one-roster-csv-record-types.js";
+import { isExtensionVocabularyToken } from "./one-roster-csv-vocabulary.js";
 
 /** Parse a OneRoster GUID field with requiredness diagnostics. */
 export function parseGuidField(
@@ -343,8 +344,4 @@ function isAllowedVocabularyValue<TValue extends string>(
   }
 
   return false;
-}
-
-function isExtensionVocabularyToken(value: string): value is OneRosterExtensionVocabularyToken {
-  return value.startsWith("ext:") && value.length > "ext:".length;
 }

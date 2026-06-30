@@ -208,6 +208,10 @@ export function roleRow(
     readonly status?: string;
     readonly dateLastModified?: string;
     readonly userSourcedId?: string;
+    readonly roleType?: string;
+    readonly role?: string;
+    readonly beginDate?: string;
+    readonly endDate?: string;
     readonly orgSourcedId?: string;
     readonly userProfileSourcedId?: string;
   } = {},
@@ -217,10 +221,10 @@ export function roleRow(
     opts.status ?? "",
     opts.dateLastModified ?? "",
     opts.userSourcedId ?? "user-1",
-    "primary",
-    "teacher",
-    "2024-08-01",
-    "",
+    opts.roleType ?? "primary",
+    opts.role ?? "teacher",
+    opts.beginDate ?? "2024-08-01",
+    opts.endDate ?? "",
     opts.orgSourcedId ?? "org-1",
     opts.userProfileSourcedId ?? "",
   ];
@@ -234,6 +238,10 @@ export function enrollmentRow(
     readonly classSourcedId?: string;
     readonly schoolSourcedId?: string;
     readonly userSourcedId?: string;
+    readonly role?: string;
+    readonly primary?: string;
+    readonly beginDate?: string;
+    readonly endDate?: string;
   } = {},
 ): readonly string[] {
   return [
@@ -243,10 +251,10 @@ export function enrollmentRow(
     opts.classSourcedId ?? "class-1",
     opts.schoolSourcedId ?? "org-1",
     opts.userSourcedId ?? "user-1",
-    "teacher",
-    "true",
-    "2024-08-01",
-    "",
+    opts.role ?? "teacher",
+    opts.primary ?? "true",
+    opts.beginDate ?? "2024-08-01",
+    opts.endDate ?? "",
   ];
 }
 
