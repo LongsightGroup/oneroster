@@ -4,6 +4,7 @@ import {
   type OneRosterCsvValidatedGradebookPackage,
 } from "./one-roster-csv-gradebook-validation.js";
 import { parseOneRosterCsvFullZip, type OneRosterCsvFullPackage } from "./one-roster-csv-full.js";
+import { validateOneRosterCsvFullSemanticRules } from "./one-roster-csv-full-semantics.js";
 import type { OneRosterCsvPackageOptions } from "./one-roster-csv-package.js";
 import type { OneRosterCsvPackageDiagnostic } from "./one-roster-csv-package-diagnostic.js";
 import type { OneRosterCsvReferenceValidationOptions } from "./one-roster-csv-record-reference-validation.js";
@@ -75,7 +76,8 @@ export function validateOneRosterCsvFullPackage(
   });
 }
 
-type OneRosterCsvFullValidationState = {
+/** Accumulated full-package validation state, including semantic diagnostics. */
+export type OneRosterCsvFullValidationState = {
   readonly rosteringValidation: OneRosterCsvRosteringValidationState;
   readonly gradebookValidation: OneRosterCsvGradebookValidationState;
   readonly resourcesValidation: OneRosterCsvResourcesValidationState;
@@ -107,15 +109,23 @@ function collectOneRosterCsvFullValidation(
     },
   );
 
+  const diagnostics: OneRosterCsvPackageDiagnostic[] = [
+    ...rosteringValidation.diagnostics,
+    ...gradebookValidation.diagnostics,
+    ...resourcesValidation.diagnostics,
+  ];
+
+  validateOneRosterCsvFullSemanticRules({
+    packageValue,
+    gradebookIndexes: gradebookValidation.indexes,
+    diagnostics,
+  });
+
   return {
     rosteringValidation,
     gradebookValidation,
     resourcesValidation,
-    diagnostics: [
-      ...rosteringValidation.diagnostics,
-      ...gradebookValidation.diagnostics,
-      ...resourcesValidation.diagnostics,
-    ],
+    diagnostics,
   };
 }
 

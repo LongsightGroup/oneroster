@@ -21,6 +21,8 @@ import {
   categoriesCsv,
   lineItemRow,
   lineItemsCsv,
+  resultRow,
+  resultsCsv,
 } from "./fixtures/one-roster-csv-gradebook-rows.js";
 import { manifestCsv, zipPackage } from "./fixtures/one-roster-csv-package-fixtures.js";
 import {
@@ -187,6 +189,100 @@ describe("OneRoster full CSV package", () => {
         }),
       ]),
     );
+  });
+
+  it("rejects lineItem score ranges where resultValueMin exceeds resultValueMax", () => {
+    const result = parseAndValidateOneRosterCsvFullZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: fullCsvModes("bulk") }),
+        ...validBulkFullGraphFiles(),
+        "lineItems.csv": lineItemsCsv([
+          lineItemRow({ resultValueMin: "100", resultValueMax: "0" }),
+        ]),
+      }),
+    );
+
+    expect(expectValidatedFullErr(result)).toContainEqual(
+      expect.objectContaining({
+        code: "semantic.invalid_score_range",
+        fileName: "lineItems.csv",
+        rowNumber: 2,
+        field: "resultValueMin",
+        expected: "resultValueMin <= resultValueMax",
+        actual: "min greater than max",
+      }),
+    );
+  });
+
+  it("rejects numeric result scores outside the lineItem score range", () => {
+    const result = parseAndValidateOneRosterCsvFullZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: fullCsvModes("bulk") }),
+        ...validBulkFullGraphFiles(),
+        "lineItems.csv": lineItemsCsv([
+          lineItemRow({ resultValueMin: "50", resultValueMax: "100" }),
+        ]),
+        "results.csv": resultsCsv([
+          resultRow({ sourcedId: "result-low", score: "49" }),
+          resultRow({ sourcedId: "result-high", score: "101" }),
+        ]),
+      }),
+    );
+
+    expect(expectValidatedFullErr(result)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "semantic.score_below_min",
+          fileName: "results.csv",
+          rowNumber: 2,
+          field: "score",
+          expected: "lineItems.resultValueMin",
+          actual: "below minimum",
+        }),
+        expect.objectContaining({
+          code: "semantic.score_above_max",
+          fileName: "results.csv",
+          rowNumber: 3,
+          field: "score",
+          expected: "lineItems.resultValueMax",
+          actual: "above maximum",
+        }),
+      ]),
+    );
+  });
+
+  it("does not apply score bounds when the score or the matching lineItem bound is absent", () => {
+    const result = parseAndValidateOneRosterCsvFullZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: fullCsvModes("bulk") }),
+        ...validBulkFullGraphFiles(),
+        "lineItems.csv": lineItemsCsv([lineItemRow({ resultValueMin: "", resultValueMax: "" })]),
+        "results.csv": resultsCsv([resultRow({ score: "" })]),
+      }),
+    );
+
+    expect(
+      expectValidatedFullOk(result).fullPackage.gradebookPackage.results[0]?.score,
+    ).toBeUndefined();
+  });
+
+  it("does not expose raw score values in semantic diagnostics", () => {
+    const result = parseAndValidateOneRosterCsvFullZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: fullCsvModes("bulk") }),
+        ...validBulkFullGraphFiles(),
+        "lineItems.csv": lineItemsCsv([
+          lineItemRow({ resultValueMin: "50.25", resultValueMax: "100.75" }),
+        ]),
+        "results.csv": resultsCsv([resultRow({ score: "49.75" })]),
+      }),
+    );
+
+    const diagnosticsJson = JSON.stringify(expectValidatedFullErr(result));
+
+    expect(diagnosticsJson).not.toContain("49.75");
+    expect(diagnosticsJson).not.toContain("50.25");
+    expect(diagnosticsJson).not.toContain("100.75");
   });
 
   it("skips delta references by default and validates all layers in allRows mode", () => {
