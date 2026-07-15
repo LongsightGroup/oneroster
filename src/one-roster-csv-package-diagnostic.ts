@@ -15,7 +15,6 @@ export type OneRosterCsvPackageDiagnosticCode =
   | "semantic.invalid_case_learning_objective_id"
   | "semantic.invalid_score_scale_mapping"
   | "semantic.academic_session_type_mismatch"
-  | "semantic.enrollment_role_mismatch"
   | "semantic.multiple_primary_roles_for_user_org"
   | "semantic.org_type_mismatch"
   | "semantic.primary_org_missing_role"

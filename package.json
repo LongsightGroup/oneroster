@@ -1,7 +1,7 @@
 {
   "name": "@longsightgroup/oneroster",
   "version": "0.2.2",
-  "description": "Faithful OneRoster 1.2 for TypeScript — CSV package parsing and normalization today; REST bindings, gradebook, and resources to follow.",
+  "description": "Faithful OneRoster 1.2 for TypeScript — CSV and portable REST contracts, consumers, and provider helpers.",
   "keywords": [
     "1edtech",
     "csv",
@@ -26,6 +26,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./v1p2": {
+      "types": "./dist/v1p2/index.d.ts",
+      "import": "./dist/v1p2/index.js"
+    },
+    "./v1p1": {
+      "types": "./dist/v1p1/index.d.ts",
+      "import": "./dist/v1p1/index.js"
     }
   },
   "publishConfig": {
@@ -39,8 +47,14 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint . --type-aware --report-unused-disable-directives --deny-warnings",
-    "prepublishOnly": "pnpm run check && pnpm run build",
+    "prepublishOnly": "pnpm run check && pnpm run test:portability && pnpm run build",
+    "generate:v1p1-operation": "node tools/generate-v1p1-operation.mjs && oxfmt --write src/v1p1/rest/operation.generated.ts",
+    "generate:v1p2-operation": "node tools/generate-v1p2-operation.mjs && oxfmt --write src/v1p2/rest/operation.generated.ts src/v1p2/rest/payload.generated.ts",
+    "rest:spec-check": "node tools/generate-v1p1-operation.mjs --refresh --check && pnpm run generate:v1p2-operation && pnpm run build && node tools/check-v1p2-openapi.mjs",
+    "compatibility:v1p1": "pnpm run build && node tools/report-v1p1-v1p2-compatibility.mjs",
+    "csv:rostering-cert-check": "pnpm run build && node tools/check-csv-rostering-conformance.mjs",
     "test": "vitest run --passWithNoTests",
+    "test:portability": "pnpm run build && pnpm exec vitest run test/v1p1-portability.test.ts test/v1p2-portability.test.ts && node tools/run-v1p1-portability.mjs && deno run --allow-read tools/run-v1p1-portability.mjs && node tools/run-v1p2-portability.mjs && deno run --allow-read tools/run-v1p2-portability.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

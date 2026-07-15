@@ -1,10 +1,8 @@
-# OneRoster TypeScript
+# OneRoster for TypeScript
 
-Portable, npm-destined TypeScript library for faithful OneRoster support.
+Faithful [OneRoster](https://www.1edtech.org/standards/oneroster) support for TypeScript — CSV packages today, portable REST clients and provider helpers alongside them.
 
-The first production surface is parsing, validating, and normalizing OneRoster CSV ZIP packages. The larger ambition is a full, spec-shaped toolkit: versioned information models, CSV bindings, REST bindings, gradebook, resources, assessment results profile, validation, and conformance-oriented fixtures.
-
-Product-specific provisioning remains outside the package.
+Works anywhere you have standard Web APIs: Node, Deno, Cloudflare Workers, Hono, browsers.
 
 ## Install
 
@@ -12,117 +10,69 @@ Product-specific provisioning remains outside the package.
 pnpm add @longsightgroup/oneroster
 ```
 
-## Spec Basis
+## How the package is organized
 
-OneRoster 1.2 is organized by service and transport binding:
+```mermaid
+flowchart LR
+  subgraph root ["@longsightgroup/oneroster"]
+    CSV[CSV parse / validate / write]
+  end
 
-- CSV has one binding document for ZIP package shape, `manifest.csv`, CSV file layout, UTF-8/RFC 4180 parsing rules, file presence, and bulk/delta behavior.
-- REST is split into information model and REST binding documents for Rostering, Gradebook, and Resource services.
-- REST bindings include endpoint definitions, query behavior, service discovery, security, payload definitions, and OpenAPI listings.
-- The Assessment Results Profile is layered on the OneRoster 1.2 Gradebook Service for assessment line items and results.
-- OneRoster 1.1 remains important compatibility material, but OneRoster 1.2 is the initial normative target.
+  subgraph v12 ["@longsightgroup/oneroster/v1p2"]
+    R12[Rostering client]
+    G12[Gradebook client]
+    Res12[Resources client]
+    AR12[Assessment Results client]
+    P12[Provider router]
+  end
 
-## Phases
+  subgraph v11 ["@longsightgroup/oneroster/v1p1"]
+    R11[Rostering + Resources + Gradebook]
+  end
 
-| Phase                     | Scope                                                                                                                                                               | Outcome                                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 0. Foundation             | Strict TypeScript package setup, ESM-only build, zero runtime dependencies by default, private local spec archive, and public contribution rules.                   | A portable baseline that can be consumed from npm, Workers, Hono, Deno, and browser-compatible bundlers.      |
-| 1. Core Model             | Versioned OneRoster 1.2 primitives, enums, references, status values, diagnostics, and result types.                                                                | A shared type and validation vocabulary that every binding uses.                                              |
-| 2. CSV Rostering          | ZIP intake, root-level file detection, `manifest.csv`, RFC 4180 parsing, BOM tolerance, case-sensitive headers, bulk/delta mode handling, and core rostering files. | First useful release for OneRoster CSV imports without Harbor-specific provisioning behavior.                 |
-| 3. Full CSV Binding       | Complete OneRoster 1.2 CSV file catalog, including gradebook, resources, score scales, learning objective links, roles, user profiles, and user resources.          | Full CSV normalization across Rostering, Gradebook, and Resources with stable row/file diagnostics.           |
-| 4. CSV Conformance        | Golden fixtures, negative fixtures, spec-derived required/optional field checks, relationship checks, and version compatibility tests.                              | Confidence that CSV behavior is faithful, predictable, and regression-resistant.                              |
-| 5. REST Contracts         | REST information models, payload envelopes, pagination, sorting, filtering, field selection, status payloads, and OpenAPI comparison tests.                         | REST support designed on top of the stable core model, without committing the core package to generated SDKs. |
-| 6. REST Runtime           | Optional client/server helpers for Rostering, Gradebook, and Resources using web-standard `fetch`/`Request`/`Response` contracts.                                   | REST integrations that work across Workers, Hono, Deno, Node runtimes, and test harnesses.                    |
-| 7. Profiles and Ecosystem | Assessment Results Profile support, optional adapters, import/export utilities, examples, and compatibility guides.                                                 | A broad OneRoster toolkit while keeping product provisioning outside the library.                             |
+  CSV -->|"typed records"| App[Your app]
+  R12 --> App
+  G12 --> App
+  Res12 --> App
+  AR12 --> App
+  P12 --> App
+  R11 --> App
+```
 
-CSV comes first because it is a concrete binding with immediate normalization needs. REST comes later because the spec separates REST service models from REST bindings, and those are best built after the shared OneRoster model and diagnostics are stable.
+| Import                           | Use when                                                  |
+| -------------------------------- | --------------------------------------------------------- |
+| `@longsightgroup/oneroster`      | CSV ZIP packages — rostering, gradebook, resources tables |
+| `@longsightgroup/oneroster/v1p2` | OneRoster 1.2 REST (normative target)                     |
+| `@longsightgroup/oneroster/v1p1` | OneRoster 1.1 REST compatibility                          |
 
-OpenAPI descriptions and external schema libraries may be used as references or test inputs. They should not become core runtime dependencies unless there is a strong portability and maintenance reason.
+v1.1 and v1.2 are separate on purpose. Pick a version; the library does not blend them.
 
-## Toolchain
+CSV support follows the corrected OneRoster CSV Binding 1.2.1. Packages still declare
+`oneroster.version,1.2` in `manifest.csv`; 1.2.1 is the CSV document correction level, not a
+separate manifest or REST version.
 
-- TypeScript 7 RC
-- pnpm
-- oxlint
-- oxfmt
-- Vitest
+## CSV: parse a package
 
-Runtime dependency policy: zero by default, with one deliberate exception: ZIP container handling uses `fflate` behind the package's own `ZipEntry` and diagnostic contracts. CSV parsing is owned by this package so OneRoster-specific diagnostics and parser restrictions stay under our control.
-
-The core package should remain portable across npm ESM, Workers, Hono, Deno consumers, and browser-compatible bundlers.
-
-## CSV Support Status
-
-| Area                | Status                                                                                                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ZIP/package intake  | Implemented for root-level OneRoster CSV 1.2 packages with strict `manifest.csv` reconciliation.                                                                  |
-| CSV parsing/writing | Implemented with owned RFC 4180-compatible parsing/serialization and OneRoster-specific diagnostics.                                                              |
-| Rostering CSV       | Implemented for `academicSessions`, `orgs`, `courses`, `classes`, `users`, `roles`, `enrollments`, `demographics`, and `userProfiles`.                            |
-| Gradebook CSV       | Implemented for categories, line items, results, score scales, and gradebook link tables.                                                                         |
-| Resources CSV       | Implemented for resources, class resources, course resources, and user resources.                                                                                 |
-| Semantic validation | Implemented for direct references, duplicate sourced IDs, selected full-package constraints, and safe diagnostics.                                                |
-| CSV writing         | Implemented for raw packages, trusted file maps/entries, typed record collections, and typed rostering, gradebook, resources, and full packages.                  |
-| Helper APIs         | Implemented for canonical headers, manifest modes/rows, record projection, user display names, statuses, diagnostic locations, and common resolved relationships. |
-| REST and OpenAPI    | Planned later; no REST runtime or generated SDK is part of the current package surface.                                                                           |
-
-## CSV Usage
-
-Parse and validate a full OneRoster CSV ZIP package:
+Give it ZIP bytes. Get typed records or structured diagnostics — no throws for expected data problems.
 
 ```ts
 import { parseAndValidateOneRosterCsvFullZip } from "@longsightgroup/oneroster";
 
-const result = parseAndValidateOneRosterCsvFullZip(bytes, {
+const result = parseAndValidateOneRosterCsvFullZip(zipBytes, {
   referenceMode: "allRows",
 });
 
 if (result._tag === "err") {
-  for (const diagnostic of result.error) {
-    console.error(diagnostic.code, diagnostic.fileName, diagnostic.rowNumber, diagnostic.field);
+  for (const d of result.error) {
+    console.error(d.code, d.fileName, d.rowNumber, d.field, d.message);
   }
 } else {
-  console.log(result.value.fullPackage.rosteringPackage.users.length);
+  const { users, classes, enrollments } = result.value.fullPackage.rosteringPackage;
+  console.log(users.length, classes.length, enrollments.length);
 }
 ```
 
-Parse only the raw package boundary when a caller wants manifest and table normalization before typed rows:
-
-```ts
-import { parseOneRosterCsvZip } from "@longsightgroup/oneroster";
-
-const result = parseOneRosterCsvZip(bytes);
-
-if (result._tag === "ok") {
-  console.log(result.value.manifest.fileModes["users.csv"]);
-}
-```
-
-Validate already-extracted package entries without re-zipping:
-
-```ts
-import { parseAndValidateOneRosterCsvFullEntries } from "@longsightgroup/oneroster";
-
-const result = parseAndValidateOneRosterCsvFullEntries(entries, {
-  referenceMode: "allRows",
-});
-```
-
-Validate an in-memory file map without creating ZIP entries yourself:
-
-```ts
-import { parseAndValidateOneRosterCsvFullFiles } from "@longsightgroup/oneroster";
-
-const result = parseAndValidateOneRosterCsvFullFiles(
-  {
-    "manifest.csv": manifestCsvText,
-    "users.csv": usersCsvText,
-    "classes.csv": classesCsvBytes,
-  },
-  { referenceMode: "allRows" },
-);
-```
-
-Write a validated typed package back to normalized CSV ZIP bytes:
+Round-trip a validated package back to normalized ZIP bytes:
 
 ```ts
 import {
@@ -130,109 +80,158 @@ import {
   writeOneRosterCsvFullZip,
 } from "@longsightgroup/oneroster";
 
-const parsed = parseAndValidateOneRosterCsvFullZip(bytes);
-
+const parsed = parseAndValidateOneRosterCsvFullZip(zipBytes);
 if (parsed._tag === "ok") {
   const written = writeOneRosterCsvFullZip(parsed.value.fullPackage);
-  if (written._tag === "ok") {
-    await uploadZip(written.value);
+}
+```
+
+Already have loose CSV files instead of a ZIP? Use `parseAndValidateOneRosterCsvFullFiles` or `parseOneRosterCsvZip` for the lower-level boundaries.
+
+## REST: read roster data (1.2)
+
+You supply service URLs and tokens. The client handles paging, query encoding, and response parsing.
+
+```ts
+import {
+  createOneRosterV1p2FilterClause,
+  createOneRosterV1p2RosteringClient,
+} from "@longsightgroup/oneroster/v1p2";
+
+const filter = createOneRosterV1p2FilterClause("status", "=", "active");
+if (filter._tag !== "ok") throw new Error("bad filter");
+
+const client = createOneRosterV1p2RosteringClient({
+  serviceBaseUrls: {
+    rostering: "https://sis.example/ims/oneroster/rostering/v1p2",
+  },
+  accessTokenProvider: (scopes, signal) => yourTokenService(scopes, signal),
+});
+
+if (client._tag === "ok") {
+  const page = await client.value.getAllUsers({
+    query: { limit: 100, filter: filter.value },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (page._tag === "ok") {
+    for (const user of page.value.items) {
+      console.log(user.sourcedId, user.givenName, user.familyName);
+    }
+  }
+
+  // Bounded full traversal — caller sets the safety limits.
+  const all = await client.value.collectAllUsers({ maxPages: 50, maxItems: 10_000 });
+
+  // Lazy traversal uses the same link and offset rules without materializing every item.
+  for await (const result of client.value.iterateAllUsers({
+    maxPages: 50,
+    maxItems: 10_000,
+    signal: AbortSignal.timeout(30_000),
+  })) {
+    if (result._tag === "err") {
+      console.error(result.error._tag);
+      break;
+    }
+    processPage(result.value);
   }
 }
 ```
 
-Write trusted in-memory files directly to ZIP bytes, or generate a full package from typed records:
+Field projection is compile-time checked: pass `query: { fields: ["sourcedId", "givenName"] }` and TypeScript narrows the result.
+
+Filter combination return contracts are intentionally version-specific. `combineOneRosterV1p1Filters` returns the combined filter directly for compatibility with the established v1.1 API. `combineOneRosterV1p2Filters` preserves the v1.2 tag-disciplined `Result` return. Both functions accept already-validated clauses and an `"AND" | "OR"` join, so combination introduces no new validation failure; callers should follow the return type of the versioned entry point they import.
+
+Read retries are opt-in and shared by the 1.1 and 1.2 clients. The policy is always bounded, applies only to `GET`, observes `Retry-After`, and propagates the request's abort signal through backoff waits. Without `retryPolicy`, every operation performs exactly one request. Tests and specialized hosts can provide `retryClock: { nowMilliseconds }`; normal clients use the system clock.
 
 ```ts
-import {
-  makeOneRosterEnrollmentRecord,
-  makeOneRosterUserRecord,
-  oneRosterBulkLifecycle,
-  oneRosterDeltaDeleteLifecycle,
-  writeOneRosterCsvFullPackageZipFromRecords,
-  writeOneRosterCsvPackageZipFromFiles,
-} from "@longsightgroup/oneroster";
-
-const user = makeOneRosterUserRecord({
-  sourcedId: userSourcedId,
-  username: "learner-1",
-  givenName: "Learner",
-  familyName: "One",
-  primaryOrgSourcedId: schoolSourcedId,
-  lifecycle: oneRosterDeltaDeleteLifecycle(dateLastModified),
-});
-
-const enrollment = makeOneRosterEnrollmentRecord({
-  sourcedId: enrollmentSourcedId,
-  classSourcedId,
-  schoolSourcedId,
-  userSourcedId,
-  role: "student",
-  lifecycle: oneRosterBulkLifecycle(),
-});
-
-const trustedZip = writeOneRosterCsvPackageZipFromFiles(files);
-const generatedZip = writeOneRosterCsvFullPackageZipFromRecords({
-  users: [user],
-  enrollments: [enrollment],
+const resilientClient = createOneRosterV1p2RosteringClient({
+  serviceBaseUrls: {
+    rostering: "https://sis.example/ims/oneroster/rostering/v1p2",
+  },
+  accessTokenProvider: (scopes, signal) => yourTokenService(scopes, signal),
+  retryPolicy: {
+    maxAttempts: 3,
+    maxElapsedMilliseconds: 15_000,
+    statusCodes: [429, 502, 503],
+    retryConnectionErrors: true,
+  },
 });
 ```
 
-Metadata extension columns are preserved as `metadata.*` record fields. Writers append metadata columns after spec-defined headers and sort metadata headers deterministically. Diagnostics use stable codes and safe structural context; they do not include raw row payloads such as usernames, passwords, comments, scores, or private sourced IDs.
+## REST: pass back grades (1.2)
 
-Common helper APIs expose the same canonical CSV binding metadata used internally:
+Gradebook mutations need an explicit `AbortSignal`. Each call is one authenticated request; the read retry policy never applies to `POST`, `PUT`, or `DELETE`.
 
 ```ts
-import {
-  formatOneRosterDiagnosticLocation,
-  formatOneRosterUserDisplayName,
-  getFirstActiveOneRosterResultScoreScale,
-  getFirstOneRosterResultScoreScale,
-  getOneRosterLineItemScoreScales,
-  getResultScoreScaleSourcedIdsByResultSourcedId,
-  iterateResolvedStudentEnrollments,
-  oneRosterCsvTableHeaders,
-  oneRosterManifestRows,
-  oneRosterRecordToCsvObject,
-} from "@longsightgroup/oneroster";
+import { createOneRosterV1p2GradebookClient } from "@longsightgroup/oneroster/v1p2";
 
-const userHeaders = oneRosterCsvTableHeaders["users.csv"];
-const manifestRows = oneRosterManifestRows(validated.fullPackage.manifest.fileModes);
+const client = createOneRosterV1p2GradebookClient({
+  serviceBaseUrls: {
+    gradebook: "https://sis.example/ims/oneroster/gradebook/v1p2",
+  },
+  accessTokenProvider: (scopes, signal) => yourTokenService(scopes, signal),
+});
 
-for (const enrollment of iterateResolvedStudentEnrollments(validated)) {
-  console.log(enrollment.user.username, enrollment.classRecord.title);
+if (client._tag === "ok") {
+  const signal = AbortSignal.timeout(30_000);
+
+  await client.value.putResult(result.sourcedId, result, { signal });
+  const check = await client.value.getResult(result.sourcedId, { signal });
 }
-
-const allMemberships = [...iterateResolvedStudentEnrollments(validated, { includeInactive: true })];
-const lineItemScoreScales = getOneRosterLineItemScoreScales(validated, lineItem);
-const activeResultScoreScale = getFirstActiveOneRosterResultScoreScale(validated, result);
-const firstResultScoreScale = getFirstOneRosterResultScoreScale(validated, result, {
-  includeInactive: true,
-});
-const resultScoreScales = getResultScoreScaleSourcedIdsByResultSourcedId(validated);
-const userObject = oneRosterRecordToCsvObject("users.csv", user);
-const displayName = formatOneRosterUserDisplayName(user);
-const location = formatOneRosterDiagnosticLocation(diagnostic);
 ```
 
-Resolved relationship helpers filter inactive parent/link/target rows by default. Pass
-`{ includeInactive: true }` only on helpers whose names do not promise active-only results, such as
-`iterateResolvedStudentEnrollments`, `getOneRosterLineItemScoreScales`,
-`getFirstOneRosterResultScoreScale`, and `getResultScoreScaleSourcedIdsByResultSourcedId`.
-`getFirstActiveOneRosterResultScoreScale` is always active-only.
+Assessment Results Profile clients live on the same gradebook base URL under `@longsightgroup/oneroster/v1p2`. Resources has its own client. Building a OneRoster provider? See `createOneRosterV1p2ProviderRouter` — you wire auth and persistence; the router speaks `Request` / `Response`.
 
-For quick import telemetry, summarize a validated package:
+## REST: authorize legacy 1.1 requests
+
+OneRoster 1.1 always requires an explicit request authorizer. Hosts can keep injecting their own implementation, or deliberately select the portable OAuth 1.0a HMAC-SHA1 helper. The helper reads no environment variables and performs no authentication probing.
 
 ```ts
-import { summarizeOneRosterCsvFullPackage } from "@longsightgroup/oneroster";
+import {
+  createOneRosterV1p1OAuth1Authorizer,
+  createOneRosterV1p1RosteringClient,
+} from "@longsightgroup/oneroster/v1p1";
 
-const summary = summarizeOneRosterCsvFullPackage(validated);
+const authorizer = createOneRosterV1p1OAuth1Authorizer({
+  credentials: {
+    consumerKey: yourConsumerKey,
+    consumerSecret: yourConsumerSecret,
+    token: yourToken,
+    tokenSecret: yourTokenSecret,
+  },
+});
 
-console.log(summary.tables.users, summary.tables.enrollments, summary.rows.inactive);
+if (authorizer._tag === "ok") {
+  const client = createOneRosterV1p1RosteringClient({
+    baseUrl: "https://sis.example/ims/oneroster/v1p1",
+    authorizer: authorizer.value,
+  });
+}
 ```
 
-## Scripts
+## What's implemented
+
+| Area                                              | Status |
+| ------------------------------------------------- | ------ |
+| CSV ZIP intake + manifest                         | Done   |
+| Rostering, gradebook, resources CSV tables        | Done   |
+| CSV write + record builders                       | Done   |
+| Reference and duplicate-ID validation             | Done   |
+| Official CSV Rostering reference gate (719 cases) | Done   |
+| OneRoster 1.2 REST consumers                      | Done   |
+| OneRoster 1.1 REST compatibility                  | Done   |
+| Provider router (framework-neutral)               | Done   |
+| OpenAPI parity gate (`pnpm run rest:spec-check`)  | Done   |
+
+Runtime dependencies: zero by default, except `fflate` for ZIP containers (not exposed in public types).
+
+## Development
 
 ```sh
-pnpm run check
-pnpm run build
+pnpm run check    # format, lint, typecheck, tests
+pnpm run build    # emit dist/
+pnpm run csv:rostering-cert-check # verify all official bulk and delta Rostering cases
 ```
+
+Conformance-oriented checks also include `pnpm run test:portability`, `pnpm run compatibility:v1p1`, `pnpm run csv:rostering-cert-check`, and `pnpm run rest:spec-check`. The CSV and REST specification checks download SHA-pinned official artifacts into ignored `.specs/`.

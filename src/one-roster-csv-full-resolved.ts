@@ -130,8 +130,8 @@ export function buildOneRosterCsvFullResolvedIndexes(
 
 /**
  * Iterate resolved student/class enrollment projections from a validated full package.
- * Rows can be omitted when related records are inactive and `includeInactive` is false,
- * or when class term sessions are missing or filtered inactive.
+ * Rows are omitted when a referenced record is unavailable or inactive while
+ * `includeInactive` is false.
  */
 export function* iterateResolvedStudentEnrollments(
   validatedPackage: OneRosterCsvResolvedFullPackage,

@@ -1,14 +1,8 @@
 import type { OneRosterCsvFullSemanticContext } from "./one-roster-csv-full-semantic-context.js";
 import {
-  addSemanticDiagnostic,
-  shouldValidateSemanticRecord,
-} from "./one-roster-csv-full-semantic-diagnostic.js";
-import {
   hasPrimaryOrgRoleEvidence,
   isAcceptableSchoolOrgReference,
-  isInvalidClassTermSessionType,
   isSchoolYearAcademicSessionType,
-  roleMatchesEnrollment,
   validateDuplicatePrimaryRoles,
 } from "./one-roster-csv-full-semantic-policies.js";
 import { runSemanticRowRules } from "./one-roster-csv-full-semantic-rules.js";
@@ -18,10 +12,8 @@ export function validateOneRosterCsvFullRosteringSemantics(
   context: OneRosterCsvFullSemanticContext,
 ): void {
   validateCourseSchoolYearSessions(context);
-  validateClassTermSessions(context);
   validateClassSchoolOrgs(context);
   validateEnrollmentSchoolOrgs(context);
-  validateEnrollmentRoles(context);
   validateDuplicatePrimaryRoles(context);
   validateUserPrimaryOrgRoles(context);
   validateRoleUserProfiles(context);
@@ -56,32 +48,6 @@ function validateCourseSchoolYearSessions(context: OneRosterCsvFullSemanticConte
       }),
     },
   ]);
-}
-
-function validateClassTermSessions(context: OneRosterCsvFullSemanticContext): void {
-  for (const classRecord of context.packageValue.rosteringPackage.classes) {
-    if (!shouldValidateSemanticRecord(context, classRecord)) {
-      continue;
-    }
-
-    for (const termSourcedId of classRecord.termSourcedIds) {
-      const academicSession =
-        context.rosteringIndexes.academicSessionsBySourcedId.get(termSourcedId);
-      if (academicSession === undefined || !isInvalidClassTermSessionType(academicSession.type)) {
-        continue;
-      }
-
-      addSemanticDiagnostic(context, {
-        code: "semantic.academic_session_type_mismatch",
-        message: "OneRoster class termSourcedIds must not reference schoolYear sessions.",
-        fileName: "classes.csv",
-        rowNumber: classRecord.rowNumber,
-        field: "termSourcedIds",
-        expected: "term, semester, gradingPeriod, or ext:*",
-        actual: "schoolYear",
-      });
-    }
-  }
 }
 
 function validateClassSchoolOrgs(context: OneRosterCsvFullSemanticContext): void {
@@ -121,31 +87,6 @@ function validateEnrollmentSchoolOrgs(context: OneRosterCsvFullSemanticContext):
         field: "schoolSourcedId",
         expected: "school or ext:*",
         actual: "incompatible org type",
-      }),
-    },
-  ]);
-}
-
-function validateEnrollmentRoles(context: OneRosterCsvFullSemanticContext): void {
-  if (!context.isManifestFilePresent("roles.csv")) {
-    return;
-  }
-
-  runSemanticRowRules(context, [
-    {
-      records: context.packageValue.rosteringPackage.enrollments,
-      satisfies: (enrollment, ctx) => {
-        const userRoles = ctx.semanticIndexes.rolesByUser.get(enrollment.userSourcedId) ?? [];
-        return userRoles.some((role) => roleMatchesEnrollment(ctx, enrollment, role));
-      },
-      diagnostic: (enrollment) => ({
-        code: "semantic.enrollment_role_mismatch",
-        message: "OneRoster enrollment role must have compatible roles.csv evidence.",
-        fileName: "enrollments.csv",
-        rowNumber: enrollment.rowNumber,
-        field: "role",
-        expected: "compatible roles.csv user/org role",
-        actual: "missing compatible role",
       }),
     },
   ]);

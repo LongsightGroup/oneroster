@@ -67,15 +67,15 @@ export function parseYearField(
   });
 }
 
-/** Parse a OneRoster boolean vocabulary field with requiredness diagnostics. */
-export function parseBooleanField(
+/** Parse a OneRoster true/false enumeration field with requiredness diagnostics. */
+export function parseTrueFalseVocabularyField(
   context: OneRosterCsvRecordRowContext,
   field: string,
   requiredness: OneRosterCsvFieldRequiredness,
 ): boolean | undefined {
   return parseValidatedPrimitiveField(context, field, requiredness, parseOneRosterBooleanToken, {
     code: "row.invalid_boolean",
-    message: 'OneRoster boolean vocabulary values must be "true" or "false".',
+    message: 'OneRoster true/false enumeration values must be "true" or "false".',
     expected: "true|false",
   });
 }
@@ -256,6 +256,69 @@ export function parseStringListField(
   return splitOneRosterCsvRecordList(context, field, value, requiredness);
 }
 
+/** Parse subjects and subjectCodes while enforcing their positional pairing. */
+export function parseSubjectLists(
+  context: OneRosterCsvRecordRowContext,
+):
+  | { readonly subjects: ReadonlyArray<string>; readonly subjectCodes: ReadonlyArray<string> }
+  | undefined {
+  const subjects = parseStringListField(context, "subjects", "optional");
+  const subjectCodes = parseStringListField(context, "subjectCodes", "optional");
+
+  if (subjects === undefined || subjectCodes === undefined) {
+    return undefined;
+  }
+
+  if (subjects.length !== subjectCodes.length) {
+    context.diagnostics.push(
+      packageDiagnostic({
+        code: "row.invalid_list",
+        message: "OneRoster subjects and subjectCodes must contain the same number of items.",
+        fileName: context.table.fileName,
+        rowNumber: context.row.rowNumber,
+        field: "subjectCodes",
+        expected: "one subjectCode for each subject in the same order",
+        actual: "mismatched item counts",
+      }),
+    );
+    return undefined;
+  }
+
+  return { subjects, subjectCodes };
+}
+
+/** Parse users.csv userIds values in the required {type:id} form. */
+export function parseUserIdsField(
+  context: OneRosterCsvRecordRowContext,
+): ReadonlyArray<string> | undefined {
+  const userIds = parseStringListField(context, "userIds", "optional");
+
+  if (userIds === undefined) {
+    return undefined;
+  }
+
+  for (const userId of userIds) {
+    if (isTypedIdentifier(userId)) {
+      continue;
+    }
+
+    context.diagnostics.push(
+      packageDiagnostic({
+        code: "row.invalid_list",
+        message: "OneRoster userIds items must use the {type:id} form.",
+        fileName: context.table.fileName,
+        rowNumber: context.row.rowNumber,
+        field: "userIds",
+        expected: "comma-delimited {type:id} items",
+        actual: "invalid list item",
+      }),
+    );
+    return undefined;
+  }
+
+  return userIds;
+}
+
 /** Parse a comma-delimited OneRoster GUID list field. */
 export function parseGuidListField(
   context: OneRosterCsvRecordRowContext,
@@ -344,4 +407,15 @@ function isAllowedVocabularyValue<TValue extends string>(
   }
 
   return false;
+}
+
+function isTypedIdentifier(value: string): boolean {
+  if (!value.startsWith("{") || !value.endsWith("}")) {
+    return false;
+  }
+
+  const inner = value.slice(1, -1);
+  const separator = inner.indexOf(":");
+
+  return separator > 0 && separator === inner.lastIndexOf(":") && separator < inner.length - 1;
 }

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -38,6 +39,11 @@ jobs:
           node-version: 24.x
           cache: pnpm
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --strict-peer-dependencies
 
@@ -55,3 +61,10 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Portability
+        run: pnpm run test:portability
+
+      - name: Live OpenAPI parity
+        if: github.event_name == 'workflow_dispatch'
+        run: pnpm run rest:spec-check

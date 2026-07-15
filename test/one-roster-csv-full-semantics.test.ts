@@ -156,7 +156,7 @@ describe("OneRoster full CSV semantic validation", () => {
     );
   });
 
-  it("validates enrollment roles, primary roles, primary org roles, and profile ownership", () => {
+  it("validates primary roles, primary org roles, and profile ownership", () => {
     const diagnostics = expectValidatedFullErr(
       parseAndValidateOneRosterCsvFullZip(
         fullSemanticZip({
@@ -183,12 +183,6 @@ describe("OneRoster full CSV semantic validation", () => {
 
     expect(diagnostics).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          code: "semantic.enrollment_role_mismatch",
-          fileName: "enrollments.csv",
-          field: "role",
-          actual: "missing compatible role",
-        }),
         expect.objectContaining({
           code: "semantic.multiple_primary_roles_for_user_org",
           fileName: "roles.csv",
@@ -275,12 +269,6 @@ describe("OneRoster full CSV semantic validation", () => {
           code: "semantic.academic_session_type_mismatch",
           fileName: "courses.csv",
           field: "schoolYearSourcedId",
-        }),
-        expect.objectContaining({
-          code: "semantic.academic_session_type_mismatch",
-          fileName: "classes.csv",
-          field: "termSourcedIds",
-          actual: "schoolYear",
         }),
         expect.objectContaining({
           code: "semantic.academic_session_type_mismatch",

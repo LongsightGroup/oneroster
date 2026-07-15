@@ -11,11 +11,9 @@ import type { OneRosterResourceRole } from "./one-roster-csv-resources-types.js"
 import type { OneRosterUserResourceRecord } from "./one-roster-csv-resources-types.js";
 import type {
   OneRosterAcademicSessionType,
-  OneRosterEnrollmentRecord,
   OneRosterOrgRecord,
   OneRosterOrgType,
   OneRosterRole,
-  OneRosterRoleRecord,
 } from "./one-roster-csv-rostering-types.js";
 import { isExtensionVocabularyToken } from "./one-roster-csv-vocabulary.js";
 import type { OneRosterCsvFullSemanticContext } from "./one-roster-csv-full-semantic-context.js";
@@ -47,11 +45,6 @@ export function isAcceptableSchoolOrgReference(org: OneRosterOrgRecord | undefin
 /** Return true when an academic session type is a school year or extension token. */
 export function isSchoolYearAcademicSessionType(type: OneRosterAcademicSessionType): boolean {
   return type === "schoolYear" || isExtensionVocabularyToken(type);
-}
-
-/** Return true when an academic session type is invalid for class term references. */
-export function isInvalidClassTermSessionType(type: OneRosterAcademicSessionType): boolean {
-  return type === "schoolYear";
 }
 
 /** Return true when an academic session type is invalid for line item references. */
@@ -226,26 +219,6 @@ export function validateDuplicatePrimaryRoles(context: OneRosterCsvFullSemanticC
   }
 }
 
-/** Return true when an enrollment role has compatible roles.csv evidence. */
-export function roleMatchesEnrollment(
-  context: OneRosterCsvFullSemanticContext,
-  enrollment: OneRosterEnrollmentRecord,
-  role: OneRosterRoleRecord,
-): boolean {
-  if (isExtensionVocabularyToken(enrollment.role)) {
-    return role.role === enrollment.role && role.orgSourcedId === enrollment.schoolSourcedId;
-  }
-
-  if (enrollment.role === "administrator") {
-    return (
-      isAdministratorRole(role.role) &&
-      isSameOrAncestorOrg(context, enrollment.schoolSourcedId, role.orgSourcedId)
-    );
-  }
-
-  return role.role === enrollment.role && role.orgSourcedId === enrollment.schoolSourcedId;
-}
-
 /** Build resource-role evidence for a user from enrollments and roles.csv. */
 export function buildResourceRoleEvidence(
   context: OneRosterCsvFullSemanticContext,
@@ -317,29 +290,4 @@ export function hasPrimaryOrgRoleEvidence(
   primaryOrgSourcedId: OneRosterGuid,
 ): boolean {
   return context.semanticIndexes.rolesByUserOrg.has(userOrgKey(userSourcedId, primaryOrgSourcedId));
-}
-
-function isSameOrAncestorOrg(
-  context: OneRosterCsvFullSemanticContext,
-  orgSourcedId: OneRosterGuid,
-  possibleAncestorSourcedId: OneRosterGuid,
-): boolean {
-  if (orgSourcedId === possibleAncestorSourcedId) {
-    return true;
-  }
-
-  const visited = new Set<OneRosterGuid>();
-  let current = context.rosteringIndexes.orgsBySourcedId.get(orgSourcedId);
-
-  while (current?.parentSourcedId !== undefined && !visited.has(current.sourcedId)) {
-    visited.add(current.sourcedId);
-
-    if (current.parentSourcedId === possibleAncestorSourcedId) {
-      return true;
-    }
-
-    current = context.rosteringIndexes.orgsBySourcedId.get(current.parentSourcedId);
-  }
-
-  return false;
 }

@@ -1,6 +1,6 @@
 import type { OneRosterCsvRecordRowContext } from "./one-roster-csv-record-context.js";
 import {
-  parseBooleanField,
+  parseTrueFalseVocabularyField,
   parseDateField,
   parseFloatField,
   parseGuidField,
@@ -124,10 +124,10 @@ export function parseResultRecord(
       comment: parseOptionalStringField(context, "comment"),
       textScore: parseOptionalStringField(context, "textScore"),
       classSourcedId: parseGuidField(context, "classSourcedId", "optional"),
-      inProgress: parseBooleanField(context, "inProgress", "optional"),
-      incomplete: parseBooleanField(context, "incomplete", "optional"),
-      late: parseBooleanField(context, "late", "optional"),
-      missing: parseBooleanField(context, "missing", "optional"),
+      inProgress: parseTrueFalseVocabularyField(context, "inProgress", "optional"),
+      incomplete: parseTrueFalseVocabularyField(context, "incomplete", "optional"),
+      late: parseTrueFalseVocabularyField(context, "late", "optional"),
+      missing: parseTrueFalseVocabularyField(context, "missing", "optional"),
     },
     ["common", "lineItemSourcedId", "studentSourcedId", "scoreStatus", "scoreDate"],
     (fields) => ({

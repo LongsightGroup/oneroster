@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import * as oneRoster from "../src/index.js";
+import * as oneRosterV1p2 from "../src/v1p2/index.js";
 import {
   diagnosticCodeExample,
   diagnosticLocationExample,
@@ -55,6 +56,11 @@ describe("public API smoke tests", () => {
         tables: [],
       },
     });
+  });
+
+  it("imports the explicit OneRoster 1.2 REST entry point", () => {
+    expect(oneRosterV1p2.oneRosterV1p2BasePaths.rostering).toBe("/ims/oneroster/rostering/v1p2");
+    expect(oneRoster.oneRosterV1p2Operations.length).toBeGreaterThan(0);
   });
 
   it("writes CSV bytes without Node-only Buffer inputs", () => {

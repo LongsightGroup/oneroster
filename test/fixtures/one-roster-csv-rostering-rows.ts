@@ -121,6 +121,8 @@ export function courseRow(
     readonly dateLastModified?: string;
     readonly schoolYearSourcedId?: string;
     readonly orgSourcedId?: string;
+    readonly subjects?: string;
+    readonly subjectCodes?: string;
   } = {},
 ): readonly string[] {
   return [
@@ -132,8 +134,8 @@ export function courseRow(
     "ALG1",
     "9",
     opts.orgSourcedId ?? "org-1",
-    "Math",
-    "MATH",
+    opts.subjects ?? "Math",
+    opts.subjectCodes ?? "MATH",
   ];
 }
 
@@ -145,6 +147,8 @@ export function classRow(
     readonly courseSourcedId?: string;
     readonly schoolSourcedId?: string;
     readonly termSourcedIds?: string;
+    readonly subjects?: string;
+    readonly subjectCodes?: string;
   } = {},
 ): readonly string[] {
   return [
@@ -159,8 +163,8 @@ export function classRow(
     "Room 101",
     opts.schoolSourcedId ?? "org-1",
     opts.termSourcedIds ?? "as-1",
-    "Math",
-    "MATH",
+    opts.subjects ?? "Math",
+    opts.subjectCodes ?? "MATH",
     "1",
   ];
 }
@@ -172,6 +176,7 @@ export function userRow(
     readonly dateLastModified?: string;
     readonly enabledUser?: string;
     readonly username?: string;
+    readonly userIds?: string;
     readonly agentSourcedIds?: string;
     readonly primaryOrgSourcedId?: string;
   } = {},
@@ -182,7 +187,7 @@ export function userRow(
     opts.dateLastModified ?? "",
     opts.enabledUser ?? "true",
     opts.username ?? "user-1",
-    "",
+    opts.userIds ?? "",
     "Given",
     "Family",
     "",

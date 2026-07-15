@@ -1,6 +1,11 @@
 /** Current package planning status. */
 export const packageStatus = "planning" as const;
 
+export {
+  oneRosterCsvBindingVersion,
+  oneRosterCsvManifestOneRosterVersion,
+} from "./one-roster-csv-version.js";
+
 export { parseCsv, parseCsvBytes } from "./csv.js";
 export type {
   CsvDocument,
@@ -258,6 +263,29 @@ export type {
 export { err, ok } from "./result.js";
 export type { Result } from "./result.js";
 export { defaultZipReadLimits, readZipEntries } from "./zip.js";
+
+/**
+ * The root entry point is CSV-first. These v1.2 registry exports are discovery metadata only;
+ * import `@longsightgroup/oneroster/v1p1` or `/v1p2` for complete versioned REST contracts.
+ */
+export {
+  findOneRosterV1p2Operation,
+  oneRosterV1p2BasePaths,
+  oneRosterV1p2OperationIdsByProviderKind,
+  oneRosterV1p2OperationIdsByService,
+  oneRosterV1p2Operations,
+  oneRosterV1p2Scope,
+} from "./v1p2/index.js";
+export type {
+  OneRosterV1p2Operation,
+  OneRosterV1p2OperationId,
+  OneRosterV1p2OperationMethod,
+  OneRosterV1p2ProviderOperationId,
+  OneRosterV1p2ProviderOperationKind,
+  OneRosterV1p2QueryCategory,
+  OneRosterV1p2ResponseKind,
+  OneRosterV1p2Service,
+} from "./v1p2/index.js";
 export type {
   ZipDiagnostic,
   ZipDiagnosticCode,

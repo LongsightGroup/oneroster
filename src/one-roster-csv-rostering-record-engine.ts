@@ -1,13 +1,15 @@
 import type { OneRosterCsvRecordRowContext } from "./one-roster-csv-record-context.js";
 import {
-  parseBooleanField,
+  parseTrueFalseVocabularyField,
   parseDateField,
   parseGuidField,
   parseGuidListField,
   parseOptionalStringField,
   parseRequiredStringField,
   parseStringListField,
+  parseSubjectLists,
   parseVocabularyField,
+  parseUserIdsField,
   parseYearField,
 } from "./one-roster-csv-record-field-parsers.js";
 import { parseCommonRecordFields } from "./one-roster-csv-record-lifecycle.js";
@@ -108,10 +110,9 @@ export function parseCourseRecord(
       courseCode: parseOptionalStringField(context, "courseCode"),
       grades: parseStringListField(context, "grades", "optional"),
       orgSourcedId: parseGuidField(context, "orgSourcedId", "required"),
-      subjects: parseStringListField(context, "subjects", "optional"),
-      subjectCodes: parseStringListField(context, "subjectCodes", "optional"),
+      subjectLists: parseSubjectLists(context),
     },
-    ["common", "title", "orgSourcedId"],
+    ["common", "title", "orgSourcedId", "subjectLists"],
     (fields) => ({
       ...fields.common,
       schoolYearSourcedId: fields.schoolYearSourcedId,
@@ -119,8 +120,8 @@ export function parseCourseRecord(
       courseCode: fields.courseCode,
       grades: fields.grades,
       orgSourcedId: fields.orgSourcedId,
-      subjects: fields.subjects,
-      subjectCodes: fields.subjectCodes,
+      subjects: fields.subjectLists.subjects,
+      subjectCodes: fields.subjectLists.subjectCodes,
     }),
   );
 }
@@ -144,11 +145,18 @@ export function parseClassRecord(
       location: parseOptionalStringField(context, "location"),
       schoolSourcedId: parseGuidField(context, "schoolSourcedId", "required"),
       termSourcedIds: parseGuidListField(context, "termSourcedIds", "required"),
-      subjects: parseStringListField(context, "subjects", "optional"),
-      subjectCodes: parseStringListField(context, "subjectCodes", "optional"),
+      subjectLists: parseSubjectLists(context),
       periods: parseStringListField(context, "periods", "optional"),
     },
-    ["common", "title", "courseSourcedId", "classType", "schoolSourcedId", "termSourcedIds"],
+    [
+      "common",
+      "title",
+      "courseSourcedId",
+      "classType",
+      "schoolSourcedId",
+      "termSourcedIds",
+      "subjectLists",
+    ],
     (fields) => ({
       ...fields.common,
       title: fields.title,
@@ -159,8 +167,8 @@ export function parseClassRecord(
       location: fields.location,
       schoolSourcedId: fields.schoolSourcedId,
       termSourcedIds: fields.termSourcedIds,
-      subjects: fields.subjects,
-      subjectCodes: fields.subjectCodes,
+      subjects: fields.subjectLists.subjects,
+      subjectCodes: fields.subjectLists.subjectCodes,
       periods: fields.periods,
     }),
   );
@@ -177,9 +185,9 @@ export function parseUserRecord(
     diagnosticStart,
     {
       common: parseCommonRecordFields(context),
-      enabledUser: parseBooleanField(context, "enabledUser", "required"),
+      enabledUser: parseTrueFalseVocabularyField(context, "enabledUser", "required"),
       username: parseRequiredStringField(context, "username"),
-      userIds: parseStringListField(context, "userIds", "optional"),
+      userIds: parseUserIdsField(context),
       givenName: parseRequiredStringField(context, "givenName"),
       familyName: parseRequiredStringField(context, "familyName"),
       middleName: parseOptionalStringField(context, "middleName"),
@@ -271,7 +279,7 @@ export function parseEnrollmentRecord(
       schoolSourcedId: parseGuidField(context, "schoolSourcedId", "required"),
       userSourcedId: parseGuidField(context, "userSourcedId", "required"),
       role: parseVocabularyField(context, "role", "required", enrollmentRoleValues, true),
-      primary: parseBooleanField(context, "primary", "optional"),
+      primary: parseTrueFalseVocabularyField(context, "primary", "optional"),
       beginDate: parseDateField(context, "beginDate", "optional"),
       endDate: parseDateField(context, "endDate", "optional"),
     },
@@ -302,25 +310,29 @@ export function parseDemographicsRecord(
       common: parseCommonRecordFields(context),
       birthDate: parseDateField(context, "birthDate", "optional"),
       sex: parseVocabularyField(context, "sex", "optional", demographicsSexValues, true),
-      americanIndianOrAlaskaNative: parseBooleanField(
+      americanIndianOrAlaskaNative: parseTrueFalseVocabularyField(
         context,
         "americanIndianOrAlaskaNative",
         "optional",
       ),
-      asian: parseBooleanField(context, "asian", "optional"),
-      blackOrAfricanAmerican: parseBooleanField(context, "blackOrAfricanAmerican", "optional"),
-      nativeHawaiianOrOtherPacificIslander: parseBooleanField(
+      asian: parseTrueFalseVocabularyField(context, "asian", "optional"),
+      blackOrAfricanAmerican: parseTrueFalseVocabularyField(
+        context,
+        "blackOrAfricanAmerican",
+        "optional",
+      ),
+      nativeHawaiianOrOtherPacificIslander: parseTrueFalseVocabularyField(
         context,
         "nativeHawaiianOrOtherPacificIslander",
         "optional",
       ),
-      white: parseBooleanField(context, "white", "optional"),
-      demographicRaceTwoOrMoreRaces: parseBooleanField(
+      white: parseTrueFalseVocabularyField(context, "white", "optional"),
+      demographicRaceTwoOrMoreRaces: parseTrueFalseVocabularyField(
         context,
         "demographicRaceTwoOrMoreRaces",
         "optional",
       ),
-      hispanicOrLatinoEthnicity: parseBooleanField(
+      hispanicOrLatinoEthnicity: parseTrueFalseVocabularyField(
         context,
         "hispanicOrLatinoEthnicity",
         "optional",

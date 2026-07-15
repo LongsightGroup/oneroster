@@ -28,15 +28,70 @@ import {
   validBulkRosteringFiles,
 } from "./fixtures/one-roster-csv-rostering-packages.js";
 import {
+  classesCsv,
+  classRow,
+  coursesCsv,
+  courseRow,
   demographicsCsv,
   demographicsRow,
   userProfilesCsv,
   userProfileRow,
+  userRow,
   usersCsv,
   validBulkUserRow,
 } from "./fixtures/one-roster-csv-rostering-rows.js";
 
 describe("parseOneRosterCsvRosteringZip", () => {
+  it("enforces paired subject lists and structured user identifiers", () => {
+    const cases = [
+      {
+        fileName: "courses.csv",
+        contents: coursesCsv([courseRow({ subjects: "Math", subjectCodes: "" })]),
+      },
+      {
+        fileName: "classes.csv",
+        contents: classesCsv([classRow({ subjects: "", subjectCodes: "MATH" })]),
+      },
+      {
+        fileName: "users.csv",
+        contents: usersCsv([userRow({ userIds: "BROKEN_USER_ID" })]),
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      const result = parseOneRosterCsvRosteringZip(
+        zipPackage({
+          "manifest.csv": manifestCsv({ modes: new Map([[testCase.fileName, "bulk"]]) }),
+          [testCase.fileName]: testCase.contents,
+        }),
+      );
+
+      expect(expectRosteringErr(result)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "row.invalid_list",
+            fileName: testCase.fileName,
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("reports invalid subjects and subjectCodes before checking their pairing", () => {
+    const result = parseOneRosterCsvRosteringZip(
+      zipPackage({
+        "manifest.csv": manifestCsv({ modes: new Map([["courses.csv", "bulk"]]) }),
+        "courses.csv": coursesCsv([courseRow({ subjects: "Math,", subjectCodes: "MATH," })]),
+      }),
+    );
+    const diagnostics = expectRosteringErr(result);
+
+    expect(diagnostics.filter((diagnostic) => diagnostic.code === "row.invalid_list")).toEqual([
+      expect.objectContaining({ field: "subjects" }),
+      expect.objectContaining({ field: "subjectCodes" }),
+    ]);
+  });
+
   it("parses valid bulk records for typed rostering files", () => {
     const result = parseOneRosterCsvRosteringZip(
       zipPackage({
