@@ -151,9 +151,9 @@ function clientCall(operation) {
   if (operation.method === "GET")
     return call(operation.operationId, [...pathParameters, "options?"]);
   if (operation.method === "DELETE")
-    return call(operation.operationId, [...pathParameters, "{ signal }"]);
+    return call(operation.operationId, [...pathParameters, "options?"]);
   const payload = operation.method === "POST" ? "items" : "entity";
-  return call(operation.operationId, [...pathParameters, payload, "{ signal }"]);
+  return call(operation.operationId, [...pathParameters, payload, "options?"]);
 }
 
 function call(operationId, parameters) {

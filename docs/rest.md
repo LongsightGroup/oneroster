@@ -107,7 +107,7 @@ Use `iterateClassesForStudent` when the relationship may span more than one page
 
 ## Pass a grade back
 
-Gradebook writes require an `AbortSignal`. `PUT` checks that the path `sourcedId` matches the entity before sending the request.
+Gradebook writes accept an optional `AbortSignal`. `PUT` checks that the path `sourcedId` matches the entity before sending the request.
 
 ```ts
 import { createOneRosterV1p2GradebookClient } from "@longsightgroup/oneroster/v1p2";
