@@ -131,19 +131,15 @@ export async function assessmentResultsProfileUsageExample(
     fetch,
   });
   if (client._tag === "err") return;
-  const signal = new AbortController().signal;
-
   // A host-owned assessment/QTI workflow supplies these already-interpreted values.
   const lineItem = await client.value.putAssessmentLineItem(
     assessmentLineItem.sourcedId,
     assessmentLineItem,
-    { signal },
   );
   if (lineItem._tag === "err") return;
   const result = await client.value.putAssessmentResult(
     assessmentResult.sourcedId,
     assessmentResult,
-    { signal },
   );
   if (result._tag === "err") return;
   // OneRoster Assessment Results exchange does not calculate scores or carry QTI content.

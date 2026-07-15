@@ -229,9 +229,7 @@ describe("OneRoster 1.2 Assessment Results Profile", () => {
       },
     });
     const signal = new AbortController().signal;
-    const deletedLineItem = await client.deleteAssessmentLineItem("assessment-line-item-example", {
-      signal,
-    });
+    const deletedLineItem = await client.deleteAssessmentLineItem("assessment-line-item-example");
     const putLineItem = await client.putAssessmentLineItem(
       "assessment-line-item-example",
       lineItem,
@@ -240,9 +238,7 @@ describe("OneRoster 1.2 Assessment Results Profile", () => {
     const deletedResult = await client.deleteAssessmentResult("assessment-result-example", {
       signal,
     });
-    const putResult = await client.putAssessmentResult("assessment-result-example", resultEntity, {
-      signal,
-    });
+    const putResult = await client.putAssessmentResult("assessment-result-example", resultEntity);
     expect([deletedLineItem, putLineItem, deletedResult, putResult].every(isOkResult)).toBe(true);
     expect(harness.calls.map((call) => call.method)).toEqual([
       "GET",

@@ -134,7 +134,7 @@ const resilientClient = createOneRosterV1p2RosteringClient({
 
 ## REST: pass back grades (1.2)
 
-Pass an `AbortSignal` to each gradebook mutation. `POST`, `PUT`, and `DELETE` operations make one authenticated request and do not use the read retry policy.
+Gradebook writes do not require an options object. Pass an optional `signal` when your application needs cancellation or a deadline; `AbortSignal.timeout(30_000)` cancels a request after 30 seconds. `POST`, `PUT`, and `DELETE` each make one authenticated request, and the client never retries writes automatically.
 
 ```ts
 import { createOneRosterV1p2GradebookClient } from "@longsightgroup/oneroster/v1p2";
@@ -147,10 +147,8 @@ const client = createOneRosterV1p2GradebookClient({
 });
 
 if (client._tag === "ok") {
-  const signal = AbortSignal.timeout(30_000);
-
-  await client.value.putResult(result.sourcedId, result, { signal });
-  const check = await client.value.getResult(result.sourcedId, { signal });
+  await client.value.putResult(result.sourcedId, result);
+  const check = await client.value.getResult(result.sourcedId);
 }
 ```
 

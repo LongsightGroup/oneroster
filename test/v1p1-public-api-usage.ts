@@ -29,9 +29,7 @@ export async function v1p1GradebookClientUsageExample(
 ): Promise<void> {
   const page = await client.getLineItemsForClass("class-example");
   if (page._tag === "err") return;
-  const written = await client.putCategory("category-example", category, {
-    signal: new AbortController().signal,
-  });
+  const written = await client.putCategory("category-example", category);
   if (written._tag === "err") return;
   void page.value.items;
   void written.value;

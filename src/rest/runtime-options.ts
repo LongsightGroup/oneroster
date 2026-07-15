@@ -37,9 +37,9 @@ interface ParsedRuntimeOptions<
   readonly maxItems?: number;
 }
 
-/** Required cancellation input for a REST mutation. */
+/** Optional caller-owned cancellation input for a REST mutation. */
 export interface OneRosterRestWriteOptions {
-  readonly signal: AbortSignal;
+  readonly signal?: AbortSignal;
 }
 
 /** Validated reader installed by a version-specific client adapter. */
@@ -64,7 +64,7 @@ export interface OneRosterRestRuntimeOptionReaders<TQuery extends OneRosterRestQ
   >;
 }
 
-/** Validated reader for mutation options with required cancellation. */
+/** Validated reader for optional mutation options. */
 export type OneRosterRestWriteOptionReader<TError> = (
   input: unknown,
   operationId: string,
@@ -184,7 +184,7 @@ export function createOneRosterRestRuntimeOptionReaders<
   return { read, iterate, collectAll };
 }
 
-/** Build a runtime reader that requires an AbortSignal for every mutation. */
+/** Build a runtime reader for optional mutation cancellation. */
 export function createOneRosterRestWriteOptionReader<
   TError,
   TDiagnostic extends OneRosterRestRuntimeDiagnostic,
@@ -193,6 +193,7 @@ export function createOneRosterRestWriteOptionReader<
   createError: (operationId: string, diagnostics: ReadonlyArray<TDiagnostic>) => TError,
 ): OneRosterRestWriteOptionReader<TError> {
   return (input, operationId) => {
+    if (input === undefined) return ok({});
     if (!isRecord(input)) {
       return err(
         createError(operationId, [
@@ -202,13 +203,13 @@ export function createOneRosterRestWriteOptionReader<
     }
 
     const signal = input["signal"];
-    if (!isAbortSignal(signal)) {
+    if (signal !== undefined && !isAbortSignal(signal)) {
       return err(
         createError(operationId, [createDiagnostic("$.signal", "signal must be an AbortSignal.")]),
       );
     }
 
-    return ok({ signal });
+    return ok(signal === undefined ? {} : { signal });
   };
 }
 

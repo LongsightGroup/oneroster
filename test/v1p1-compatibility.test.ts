@@ -341,20 +341,23 @@ describe("OneRoster 1.1 compatibility boundary", () => {
     expect(result).toMatchObject({ _tag: "ok", value: { status: 201 } });
     expect(requests).toEqual([{ method: "PUT", url: `${baseUrl}/categories/category-synthetic` }]);
 
+    const deleted = await client.value.deleteCategory("category-synthetic");
+    expect(deleted).toMatchObject({ _tag: "ok", value: { status: 204 } });
+
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: this test intentionally crosses the public TypeScript boundary to verify runtime rejection of malformed options.
     const deleteCategory = client.value.deleteCategory as (
       sourcedId: string,
       options: unknown,
     ) => Promise<unknown>;
-    const missingSignal = await deleteCategory("category-synthetic", {});
-    expect(missingSignal).toMatchObject({
+    const invalidSignal = await deleteCategory("category-synthetic", { signal: "invalid" });
+    expect(invalidSignal).toMatchObject({
       _tag: "err",
       error: {
         _tag: "OneRosterV1p1QueryError",
         diagnostics: [{ path: "$.signal" }],
       },
     });
-    expect(requests).toHaveLength(1);
+    expect(requests).toHaveLength(2);
   });
 
   it("returns cancellation before calling the authorizer or fetch", async () => {

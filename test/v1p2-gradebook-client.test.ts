@@ -302,25 +302,31 @@ describe("OneRoster 1.2 Gradebook client", () => {
     expect(JSON.stringify(failure)).not.toContain("not-retained");
   });
 
-  it("rejects mutation options without a cancellation signal before transport", async () => {
-    const harness = new GradebookFetchHarness([]);
+  it("allows omitted mutation options and rejects invalid cancellation signals", async () => {
+    const harness = new GradebookFetchHarness([
+      responseFor("deleteCategory"),
+      responseFor("deleteCategory"),
+    ]);
     const client = createClient(harness);
+    const result = await client.deleteCategory("category-example");
+    expect(result).toMatchObject({ _tag: "ok", value: { status: 204 } });
+    const withoutSignal = await client.deleteCategory("category-example", {});
+    expect(withoutSignal).toMatchObject({ _tag: "ok", value: { status: 204 } });
+
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- SAFETY: this test intentionally crosses the public TypeScript boundary to verify runtime rejection of malformed options.
     const deleteCategory = client.deleteCategory as (
       sourcedId: string,
       options: unknown,
     ) => Promise<unknown>;
-
-    const result = await deleteCategory("category-example", {});
-
-    expect(result).toMatchObject({
+    const invalid = await deleteCategory("category-example", { signal: "not-a-signal" });
+    expect(invalid).toMatchObject({
       _tag: "err",
       error: {
         _tag: "OneRosterV1p2QueryError",
         diagnostics: [{ path: "$.signal" }],
       },
     });
-    expect(harness.calls).toHaveLength(0);
+    expect(harness.calls).toHaveLength(2);
   });
 
   it("does not invoke a mutation after cancellation or when a batch is empty", async () => {

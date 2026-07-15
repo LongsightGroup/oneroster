@@ -39,9 +39,9 @@ export interface OneRosterV1p1GradebookReadOptions {
   readonly signal?: AbortSignal;
 }
 
-/** Mutations require an explicit caller-owned cancellation signal. */
+/** Optional caller-owned cancellation for Gradebook mutations. */
 export interface OneRosterV1p1GradebookWriteOptions {
-  readonly signal: AbortSignal;
+  readonly signal?: AbortSignal;
 }
 
 /** Safe mutation result. */

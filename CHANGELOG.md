@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generate OneRoster 1.2 provider operation inventories, request parsers, and response-envelope serializers from the same OpenAPI metadata used by consumer clients.
 - Share query parsing, filtering, pagination, URL construction, transport errors, retries, runtime option parsing, and registry validation across v1.1 and v1.2 while preserving versioned public errors.
 - Require `maxPages` for lazy iteration and both `maxPages` and `maxItems` for eager `collectAll` traversal at the public method boundary.
+- Make mutation options and caller-owned cancellation signals optional while keeping all writes single-attempt and non-retrying.
 - Keep the established filter-combination contracts: v1.1 returns a filter directly, while v1.2 returns a `Result`.
 - Expand the README with versioned import guidance and examples for CSV parsing, v1.2 reads and passback, retries, bounded traversal, provider routing, and v1.1 authorization.
 - Update the development toolchain to stable TypeScript 7.0.2, Vitest 4.1.10, Oxlint 1.74.0, Oxfmt 0.59.0, `oxlint-tsgolint` 0.24.0, and pnpm 11.13.0.

@@ -52,9 +52,9 @@ export type OneRosterV1p2AssessmentResultsSingletonProjectionOptions<
   TField extends OneRosterRestEntityField<TEntity>,
 > = OneRosterRestSingletonProjectionOptions<TEntity, TField>;
 
-/** Required cancellation input for Assessment Results Profile mutations. */
+/** Optional caller-owned cancellation for Assessment Results Profile mutations. */
 export interface OneRosterV1p2AssessmentResultsWriteOptions {
-  readonly signal: AbortSignal;
+  readonly signal?: AbortSignal;
 }
 
 /** Explicit success returned by an Assessment Results Profile mutation. */

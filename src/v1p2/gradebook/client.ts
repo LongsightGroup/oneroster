@@ -68,9 +68,9 @@ export type OneRosterV1p2GradebookSingletonProjectionOptions<
   TField extends OneRosterRestEntityField<TEntity>,
 > = OneRosterRestSingletonProjectionOptions<TEntity, TField>;
 
-/** Required cancellation input for Gradebook mutations. */
+/** Optional caller-owned cancellation for Gradebook mutations. */
 export interface OneRosterV1p2GradebookWriteOptions {
-  readonly signal: AbortSignal;
+  readonly signal?: AbortSignal;
 }
 
 /** Explicit success returned by a Gradebook mutation. */

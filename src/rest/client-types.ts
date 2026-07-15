@@ -206,7 +206,7 @@ export type OneRosterRestWriteMethod<
   TWriteSuccess,
   TError,
 > = (
-  ...args: [...TParameters, value: TInput, options: TWriteOptions]
+  ...args: [...TParameters, value: TInput, options?: TWriteOptions]
 ) => Promise<Result<TWriteSuccess, TError>>;
 
 /** Shared delete method contract used by registry-derived clients. */
@@ -215,7 +215,7 @@ export type OneRosterRestDeleteMethod<
   TWriteOptions,
   TWriteSuccess,
   TError,
-> = (...args: [...TParameters, options: TWriteOptions]) => Promise<Result<TWriteSuccess, TError>>;
+> = (...args: [...TParameters, options?: TWriteOptions]) => Promise<Result<TWriteSuccess, TError>>;
 
 type MethodForDefinition<
   TDefinition,
