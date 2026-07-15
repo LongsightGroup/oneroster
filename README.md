@@ -20,6 +20,8 @@ pnpm add @longsightgroup/oneroster
 
 Import REST APIs from the version you need. The v1.1 and v1.2 entry points have separate types and behavior, with no cross-version fallback.
 
+New to the REST API? Start with the [OneRoster REST guide](docs/rest.md), then use the [generated operation catalog](docs/rest-operations.md) to find every client call, HTTP path, query option, and OAuth scope.
+
 CSV support follows the corrected OneRoster CSV Binding 1.2.1. Packages still declare
 `oneroster.version,1.2` in `manifest.csv`. The 1.2.1 number identifies the CSV document
 correction level, not a separate manifest or REST version.
