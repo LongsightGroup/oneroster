@@ -17,6 +17,7 @@
   },
   "files": [
     "dist",
+    "docs",
     "README.md",
     "CHANGELOG.md"
   ],
@@ -42,14 +43,16 @@
   },
   "scripts": {
     "build": "pnpm run clean && tsc -p tsconfig.build.json",
-    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
+    "check": "pnpm run docs:rest:check && pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
     "clean": "rm -rf dist coverage",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint . --type-aware --report-unused-disable-directives --deny-warnings",
     "prepublishOnly": "pnpm run check && pnpm run test:portability && pnpm run build",
     "generate:v1p1-operation": "node tools/generate-v1p1-operation.mjs && oxfmt --write src/v1p1/rest/operation.generated.ts",
-    "generate:v1p2-operation": "node tools/generate-v1p2-operation.mjs && oxfmt --write src/v1p2/rest/operation.generated.ts src/v1p2/rest/payload.generated.ts",
+    "generate:v1p2-operation": "node tools/generate-v1p2-operation.mjs && oxfmt --write src/v1p2/rest/operation.generated.ts src/v1p2/rest/payload.generated.ts && pnpm run docs:rest",
+    "docs:rest": "node tools/generate-rest-operation-docs.mjs && oxfmt --write docs/rest.md",
+    "docs:rest:check": "node tools/generate-rest-operation-docs.mjs --check",
     "rest:spec-check": "node tools/generate-v1p1-operation.mjs --refresh --check && pnpm run generate:v1p2-operation && pnpm run build && node tools/check-v1p2-openapi.mjs",
     "compatibility:v1p1": "pnpm run build && node tools/report-v1p1-v1p2-compatibility.mjs",
     "csv:rostering-cert-check": "pnpm run build && node tools/check-csv-rostering-conformance.mjs",
