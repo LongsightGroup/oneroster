@@ -15,6 +15,8 @@ The [generated operation catalog](./rest-operations.md) lists every client metho
 
 OneRoster 1.2 uses OAuth 2 client credentials. Keep the client secret in server-side code; do not ship it in browser JavaScript.
 
+The examples use `AbortSignal.timeout(30_000)` to give a request a 30-second deadline. An `AbortSignal` is a standard Web API value that tells `fetch` when to stop an in-progress request. You can omit `signal` when the application does not need cancellation or a deadline.
+
 ```ts
 import {
   createOneRosterV1p2OAuth2ClientCredentialsProvider,
@@ -107,7 +109,7 @@ Use `iterateClassesForStudent` when the relationship may span more than one page
 
 ## Pass a grade back
 
-Gradebook writes accept an optional `AbortSignal`. `PUT` checks that the path `sourcedId` matches the entity before sending the request.
+Gradebook writes do not require an options object. To cancel a slow request after 30 seconds, pass `{ signal: AbortSignal.timeout(30_000) }`. `PUT` also checks that the path `sourcedId` matches the entity before sending the request.
 
 ```ts
 import { createOneRosterV1p2GradebookClient } from "@longsightgroup/oneroster/v1p2";
@@ -120,8 +122,9 @@ const configured = createOneRosterV1p2GradebookClient({
 });
 
 if (configured._tag === "ok") {
-  const signal = AbortSignal.timeout(30_000);
-  const written = await configured.value.putResult(result.sourcedId, result, { signal });
+  const written = await configured.value.putResult(result.sourcedId, result, {
+    signal: AbortSignal.timeout(30_000),
+  });
 
   if (written._tag === "err") console.error(written.error._tag);
   else console.log(written.value.status);

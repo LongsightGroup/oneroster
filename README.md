@@ -136,7 +136,7 @@ const resilientClient = createOneRosterV1p2RosteringClient({
 
 ## REST: pass back grades (1.2)
 
-Gradebook writes do not require an options object. Pass an optional `signal` when your application needs cancellation or a deadline; `AbortSignal.timeout(30_000)` cancels a request after 30 seconds. `POST`, `PUT`, and `DELETE` each make one authenticated request, and the client never retries writes automatically.
+Gradebook writes do not require an options object. To cancel a slow request after 30 seconds, pass `{ signal: AbortSignal.timeout(30_000) }`. An `AbortSignal` is the standard Web API value that tells `fetch` when to stop a request. `POST`, `PUT`, and `DELETE` each make one authenticated request, and the client never retries writes automatically.
 
 ```ts
 import { createOneRosterV1p2GradebookClient } from "@longsightgroup/oneroster/v1p2";
