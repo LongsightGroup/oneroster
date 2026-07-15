@@ -63,7 +63,7 @@ For separate CSV files, use `parseAndValidateOneRosterCsvFullFiles`. Use `parseO
 
 ## REST: read roster data (1.2)
 
-You supply service URLs and tokens. The client handles paging, query encoding, and response parsing.
+Create a client with a service base URL and an `accessTokenProvider`. Read methods encode query parameters and parse each response. Use `collectAll*` or `iterateAll*` to follow pages.
 
 ```ts
 import {
@@ -134,7 +134,7 @@ const resilientClient = createOneRosterV1p2RosteringClient({
 
 ## REST: pass back grades (1.2)
 
-Gradebook mutations need an explicit `AbortSignal`. Each call is one authenticated request; the read retry policy never applies to `POST`, `PUT`, or `DELETE`.
+Pass an `AbortSignal` to each gradebook mutation. `POST`, `PUT`, and `DELETE` operations make one authenticated request and do not use the read retry policy.
 
 ```ts
 import { createOneRosterV1p2GradebookClient } from "@longsightgroup/oneroster/v1p2";
