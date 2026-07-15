@@ -1,6 +1,6 @@
 {
   "name": "@longsightgroup/oneroster",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Faithful OneRoster 1.2 for TypeScript — CSV and portable REST contracts, consumers, and provider helpers.",
   "keywords": [
     "1edtech",
@@ -41,7 +41,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
     "clean": "rm -rf dist coverage",
     "format": "oxfmt --write .",
@@ -61,14 +61,14 @@
     "fflate": "^0.8.3"
   },
   "devDependencies": {
-    "oxfmt": "^0.56.0",
-    "oxlint": "^1.71.0",
-    "oxlint-tsgolint": "^0.23.0",
-    "typescript": "7.0.1-rc",
-    "vitest": "^4.1.9"
+    "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
+    "oxlint-tsgolint": "^0.24.0",
+    "typescript": "7.0.2",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=24.0.0"
   },
-  "packageManager": "pnpm@11.9.0"
+  "packageManager": "pnpm@11.13.0"
 }

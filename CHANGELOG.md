@@ -7,44 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- Enforce the CSV Binding's positional `subjects`/`subjectCodes` invariant and `{type:id}` syntax for `users.userIds`, while removing extra-spec class-term and enrollment-role restrictions that rejected official valid Rostering packages.
-- Make the corrected OneRoster CSV Binding 1.2.1 level explicit while preserving the required `oneroster.version,1.2` manifest value, and align true/false field terminology with the binding's enumeration model.
-- Align OneRoster 1.2 REST page metadata with the binding's default `limit` of 100 when callers omit it; explicit limits are preserved.
-- Parse required traversal bounds at the public method boundary so missing `maxPages` or `maxItems` returns a versioned query diagnostic instead of a collection-limit sentinel failure.
-- Consolidate shared v1.1 and v1.2 transport-error construction while preserving versioned tags, messages, and public error unions.
-- Isolate per-attempt authorization and fetch mechanics from retry orchestration, and share pagination-link parsing while retaining explicit version-specific limit behavior.
-- Require structured payload diagnostics at the shared transport type boundary instead of recovering `code` and `path` through runtime duck typing.
-- Centralize registry-generated collection and singleton option parsing while preserving their distinct response behavior.
-- Derive provider service operation inventories and exact handler-key unions from the generated OpenAPI operation registry.
-- Centralize v1.1/v1.2 query parsing, validation, serialization, and offset updates, plus the complete filter constructor/parser/combiner/serializer facade, behind version data and diagnostic adapters.
-- Reject incomplete, ambiguous, and extra-property v1.1 runtime filter shapes before clause validation.
-- Bind registry client installation once per version and reject definition/operation metadata mismatches or impossible runtime method arity with explicit registry configuration errors.
-- Infer registry adapter diagnostics and literal error tags/codes from one policy object instead of threading descriptor literals through ten generic parameters and call-site assertions.
-- Route provider URL decoding through the shared query/filter grammar and generate request-payload parsers plus exact operation-to-response-envelope serializers from OpenAPI metadata.
-- Resolve provider path, method, capability, and handler selection through one decision table so 404/405 classification and dispatch cannot diverge.
-- Declare collection iterate method names in registry metadata and use the same literal names for runtime installation and compile-time client projection.
-- Drive mutation arity and option placement from one kind policy, and serialize query parameters through one ordered field table.
-- Distinguish envelope and unwrapped registry definitions explicitly while preserving diagnostic paths through generated v1.2 payload parsers.
-- Separate pure retry scheduling and `Retry-After` verification from version transport integration tests.
-- Document the intentionally version-specific filter-combination return contracts without changing either public API.
+## [0.3.0] - 2026-07-15
 
 ### Added
 
-- A SHA-pinned certification gate covering all 719 official OneRoster 1.2.1 Rostering CSV reference cases: 350 bulk and 369 delta.
-- Named v1.1 and v1.2 filter helpers for the seven existing standard comparison predicates, without expanding the baseline grammar.
-- An optional, portable OneRoster 1.1 OAuth 1.0a HMAC-SHA1 authorizer with explicit credentials and deterministic nonce, clock, and Web Crypto seams.
-- Pure v1.1 and v1.2 page-termination helpers with explicit next-link, total-count, empty-page, and offset-fallback precedence.
-- Bounded async page iterators for every OneRoster 1.1 and 1.2 collection operation, yielding typed page results without eager materialization.
-- An opt-in, bounded, cancellation-aware retry policy for OneRoster 1.1 and 1.2 `GET` requests, including `Retry-After` support, an injectable retry clock, and retry-module-owned backoff scheduling.
-- Portable OneRoster 1.2 REST discovery, OAuth 2 client-credentials authentication, and a complete registry-driven Rostering read client
-- Base OneRoster 1.2 Gradebook pull and passback operations with validated write envelopes and no automatic mutation retries
-- OneRoster 1.2 Resources read client for collection, singleton, and class/course/user relationship endpoints
-- OneRoster 1.2 Assessment Results Profile v1.0 models, envelopes, and Gradebook-layer client operations
-- Framework-neutral OneRoster 1.2 provider contracts, authorization seam, router, response helpers, and capability-derived discovery
-- Deterministic OpenAPI parity manifest, conformance-oriented scenarios, and Node/Deno Web API portability gates
-- Explicitly versioned OneRoster 1.1 REST contracts, complete operation registry, injected request authorization, typed consumers, and a classified v1.1/v1.2 compatibility report
+- Versioned `@longsightgroup/oneroster/v1p2` and `@longsightgroup/oneroster/v1p1` package entry points, while keeping the root entry point CSV-first.
+- A generated OneRoster 1.2 registry covering 81 operations from the official Rostering, Gradebook, Resources, and Assessment Results OpenAPI documents.
+- Portable OneRoster 1.2 clients for Rostering reads, Gradebook pull and passback, Resources reads, and Assessment Results Profile v1.0 operations.
+- Typed OneRoster 1.2 models, response-envelope parsers, request-payload parsers, field projections, query filters, and versioned diagnostics.
+- Framework-neutral OneRoster 1.2 provider contracts, authorization, capability-derived discovery, `Request`/`Response` routing, and response-envelope serialization.
+- Portable OneRoster 1.2 discovery and OAuth 2 client-credentials authentication with explicit token, clock, fetch, and cancellation seams.
+- Explicit OneRoster 1.1 models, generated operation metadata, Rostering, Resources, and Gradebook clients, injected request authorization, and a v1.1/v1.2 compatibility report.
+- An optional OneRoster 1.1 OAuth 1.0a HMAC-SHA1 authorizer with explicit credentials and deterministic nonce, clock, and Web Crypto seams.
+- Named v1.1 and v1.2 filter constructors for the seven supported comparison predicates.
+- Bounded collection traversal through typed page reads, lazy async iterators, and eager `collectAll` methods for v1.1 and v1.2 clients.
+- Opt-in, bounded, cancellation-aware retries for v1.1 and v1.2 `GET` requests, including `Retry-After` handling and an injectable retry clock. Mutations are never retried automatically.
+- A SHA-pinned certification gate for all 719 official OneRoster CSV Binding 1.2.1 Rostering cases: 350 bulk and 369 delta.
+- OpenAPI parity checks for four pinned REST specifications, conformance scenarios, generated-registry checks, and Node/Deno Web API portability tests.
+- CI and release checks for Deno portability, plus a manually triggered live OpenAPI parity workflow.
+- Public `oneRosterCsvBindingVersion` and `oneRosterCsvManifestOneRosterVersion` constants that distinguish the 1.2.1 CSV correction level from the required `oneroster.version,1.2` manifest value.
+
+### Changed
+
+- Follow the corrected OneRoster CSV Binding 1.2.1 rules as the single validation behavior; no strict or certification-specific mode is required.
+- Parse paired `subjects` and `subjectCodes` fields together and require `users.userIds` entries to use the binding's `{type:id}` syntax.
+- Describe `true` and `false` CSV fields as binding enumerations instead of a separate boolean vocabulary.
+- Build versioned REST clients from operation and payload registries so runtime methods, path parameters, scopes, response kinds, iterate names, and TypeScript contracts share one source of truth.
+- Generate OneRoster 1.2 provider operation inventories, request parsers, and response-envelope serializers from the same OpenAPI metadata used by consumer clients.
+- Share query parsing, filtering, pagination, URL construction, transport errors, retries, runtime option parsing, and registry validation across v1.1 and v1.2 while preserving versioned public errors.
+- Require `maxPages` for lazy iteration and both `maxPages` and `maxItems` for eager `collectAll` traversal at the public method boundary.
+- Keep the established filter-combination contracts: v1.1 returns a filter directly, while v1.2 returns a `Result`.
+- Expand the README with versioned import guidance and examples for CSV parsing, v1.2 reads and passback, retries, bounded traversal, provider routing, and v1.1 authorization.
+- Update the development toolchain to stable TypeScript 7.0.2, Vitest 4.1.10, Oxlint 1.74.0, Oxfmt 0.59.0, `oxlint-tsgolint` 0.24.0, and pnpm 11.13.0.
+
+### Fixed
+
+- Apply the OneRoster 1.2 REST default page `limit` of 100 when a response omits an explicit limit.
+- Return versioned query diagnostics for missing or invalid traversal bounds instead of passing invalid sentinel values into collection mechanics.
+- Preserve diagnostic paths through generated v1.2 envelope parsers and require structured payload diagnostics at the shared transport boundary.
+- Reject incomplete, ambiguous, and extra-property v1.1 filter objects before clause validation.
+- Reject registry definitions that disagree with generated operation metadata and runtime calls with impossible argument counts.
+- Resolve provider path, HTTP method, configured capability, and handler in one decision table so 404/405 classification cannot disagree with dispatch.
+- Keep authorization and cancellation attached to each retry attempt, honor aborts during backoff, and verify `Retry-After` scheduling independently from transport integration.
+- Preserve version-specific pagination-link behavior while sharing link parsing and page-termination rules.
+
+### Removed
+
+- Extra-spec CSV class-to-term ancestry and enrollment-role matching restrictions that rejected packages accepted by the official 1.2.1 certification corpus.
+- The unused `semantic.enrollment_role_mismatch` diagnostic and stale class-term semantic documentation.
 
 ## [0.2.2]
 
