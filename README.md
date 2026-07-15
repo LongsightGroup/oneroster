@@ -1,8 +1,8 @@
 # OneRoster for TypeScript
 
-Faithful [OneRoster](https://www.1edtech.org/standards/oneroster) support for TypeScript — CSV packages today, portable REST clients and provider helpers alongside them.
+Parse, validate, and write [OneRoster](https://www.1edtech.org/standards/oneroster) CSV packages. Use versioned clients and provider routes for OneRoster REST APIs.
 
-Works anywhere you have standard Web APIs: Node, Deno, Cloudflare Workers, Hono, browsers.
+The package uses standard Web APIs and runs in Node, Deno, Cloudflare Workers, Hono, and browser-compatible bundlers.
 
 ## Install
 
@@ -12,48 +12,21 @@ pnpm add @longsightgroup/oneroster
 
 ## How the package is organized
 
-```mermaid
-flowchart LR
-  subgraph root ["@longsightgroup/oneroster"]
-    CSV[CSV parse / validate / write]
-  end
+| Import                           | Use when                                                 |
+| -------------------------------- | -------------------------------------------------------- |
+| `@longsightgroup/oneroster`      | CSV ZIP packages for rostering, gradebook, and resources |
+| `@longsightgroup/oneroster/v1p2` | OneRoster 1.2 REST (normative target)                    |
+| `@longsightgroup/oneroster/v1p1` | OneRoster 1.1 REST compatibility                         |
 
-  subgraph v12 ["@longsightgroup/oneroster/v1p2"]
-    R12[Rostering client]
-    G12[Gradebook client]
-    Res12[Resources client]
-    AR12[Assessment Results client]
-    P12[Provider router]
-  end
-
-  subgraph v11 ["@longsightgroup/oneroster/v1p1"]
-    R11[Rostering + Resources + Gradebook]
-  end
-
-  CSV -->|"typed records"| App[Your app]
-  R12 --> App
-  G12 --> App
-  Res12 --> App
-  AR12 --> App
-  P12 --> App
-  R11 --> App
-```
-
-| Import                           | Use when                                                  |
-| -------------------------------- | --------------------------------------------------------- |
-| `@longsightgroup/oneroster`      | CSV ZIP packages — rostering, gradebook, resources tables |
-| `@longsightgroup/oneroster/v1p2` | OneRoster 1.2 REST (normative target)                     |
-| `@longsightgroup/oneroster/v1p1` | OneRoster 1.1 REST compatibility                          |
-
-v1.1 and v1.2 are separate on purpose. Pick a version; the library does not blend them.
+Import REST APIs from the version you need. The v1.1 and v1.2 entry points have separate types and behavior, with no cross-version fallback.
 
 CSV support follows the corrected OneRoster CSV Binding 1.2.1. Packages still declare
-`oneroster.version,1.2` in `manifest.csv`; 1.2.1 is the CSV document correction level, not a
-separate manifest or REST version.
+`oneroster.version,1.2` in `manifest.csv`. The 1.2.1 number identifies the CSV document
+correction level, not a separate manifest or REST version.
 
 ## CSV: parse a package
 
-Give it ZIP bytes. Get typed records or structured diagnostics — no throws for expected data problems.
+`parseAndValidateOneRosterCsvFullZip` accepts ZIP bytes and returns a `Result`. A successful result contains typed records. An expected data failure contains structured diagnostics instead of throwing.
 
 ```ts
 import { parseAndValidateOneRosterCsvFullZip } from "@longsightgroup/oneroster";
@@ -86,7 +59,7 @@ if (parsed._tag === "ok") {
 }
 ```
 
-Already have loose CSV files instead of a ZIP? Use `parseAndValidateOneRosterCsvFullFiles` or `parseOneRosterCsvZip` for the lower-level boundaries.
+For separate CSV files, use `parseAndValidateOneRosterCsvFullFiles`. Use `parseOneRosterCsvZip` when you need the lower-level ZIP parsing boundary.
 
 ## REST: read roster data (1.2)
 
@@ -120,7 +93,7 @@ if (client._tag === "ok") {
     }
   }
 
-  // Bounded full traversal — caller sets the safety limits.
+  // The caller sets limits for full traversal.
   const all = await client.value.collectAllUsers({ maxPages: 50, maxItems: 10_000 });
 
   // Lazy traversal uses the same link and offset rules without materializing every item.
@@ -138,11 +111,11 @@ if (client._tag === "ok") {
 }
 ```
 
-Field projection is compile-time checked: pass `query: { fields: ["sourcedId", "givenName"] }` and TypeScript narrows the result.
+TypeScript checks field projections and narrows the result. For example, pass `query: { fields: ["sourcedId", "givenName"] }` to request those fields.
 
-Filter combination return contracts are intentionally version-specific. `combineOneRosterV1p1Filters` returns the combined filter directly for compatibility with the established v1.1 API. `combineOneRosterV1p2Filters` preserves the v1.2 tag-disciplined `Result` return. Both functions accept already-validated clauses and an `"AND" | "OR"` join, so combination introduces no new validation failure; callers should follow the return type of the versioned entry point they import.
+Filter combination has a different return type in each version. `combineOneRosterV1p1Filters` returns the combined filter directly to maintain compatibility with the v1.1 API. `combineOneRosterV1p2Filters` returns a `Result`. Both functions accept validated clauses and an `"AND" | "OR"` join, so callers should follow the return type from their versioned import.
 
-Read retries are opt-in and shared by the 1.1 and 1.2 clients. The policy is always bounded, applies only to `GET`, observes `Retry-After`, and propagates the request's abort signal through backoff waits. Without `retryPolicy`, every operation performs exactly one request. Tests and specialized hosts can provide `retryClock: { nowMilliseconds }`; normal clients use the system clock.
+The 1.1 and 1.2 clients support optional read retries. A retry policy must be bounded, applies only to `GET`, observes `Retry-After`, and passes the request's abort signal to backoff waits. Without `retryPolicy`, each operation makes one request. Tests and hosts with their own clock can provide `retryClock: { nowMilliseconds }`. Other clients use the system clock.
 
 ```ts
 const resilientClient = createOneRosterV1p2RosteringClient({
@@ -181,7 +154,7 @@ if (client._tag === "ok") {
 }
 ```
 
-Assessment Results Profile clients live on the same gradebook base URL under `@longsightgroup/oneroster/v1p2`. Resources has its own client. Building a OneRoster provider? See `createOneRosterV1p2ProviderRouter` — you wire auth and persistence; the router speaks `Request` / `Response`.
+Assessment Results Profile clients use the gradebook base URL and are exported from `@longsightgroup/oneroster/v1p2`. Resources has a separate client. To build a OneRoster provider, use `createOneRosterV1p2ProviderRouter`. Supply authentication and persistence implementations; the router accepts `Request` and returns `Response`.
 
 ## REST: authorize legacy 1.1 requests
 
@@ -224,7 +197,7 @@ if (authorizer._tag === "ok") {
 | Provider router (framework-neutral)               | Done   |
 | OpenAPI parity gate (`pnpm run rest:spec-check`)  | Done   |
 
-Runtime dependencies: zero by default, except `fflate` for ZIP containers (not exposed in public types).
+The only runtime dependency is `fflate`, which parses ZIP containers. Its types are not part of the public API.
 
 ## Development
 
